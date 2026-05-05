@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-client = anthropic.Anthropic()
 
 @app.route('/')
 def index():
@@ -21,6 +20,7 @@ def analyse():
     if not email_text:
         return jsonify({'error': 'No email provided'}), 400
 
+    client = anthropic.Anthropic()
     response = client.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=1024,
