@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Email Analyser</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<header>
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+  </svg>
+  <div>
+    <h1>Email Analyser</h1>
+    <p>Powered by Claude AI</p>
+  </div>
+</header>
+
+<main>
+
+  <!-- Input -->
+  <div class="card">
+    <h2>Paste your email</h2>
+    <textarea id="emailInput" placeholder="Paste the email you want to analyse here…"></textarea>
+    <div class="error-box" id="errorBox"></div>
+    <button class="btn" id="analyseBtn" onclick="analyse()">
+      <span id="btnLabel">Analyse Email</span>
+      <div class="spinner" id="spinner"></div>
+    </button>
+  </div>
+
+  <!-- Results -->
+  <div id="results">
+
+    <div class="meta-row">
+      <div class="meta-pill" id="pillMood">
+        <div class="label">Sender Mood</div>
+        <div class="value" id="moodVal">—</div>
+      </div>
+      <div class="meta-pill" id="pillUrgency">
+        <div class="label">Urgency</div>
+        <div class="value" id="urgencyVal">—</div>
+      </div>
+      <div class="meta-pill" id="pillResponseTime">
+        <div class="label">Respond By</div>
+        <div class="value" id="responseTimeVal">—</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Summary</div>
+      <p class="summary-text" id="summaryVal"></p>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Action Items</div>
+      <ul class="action-list" id="actionList"></ul>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Suggested Reply</div>
+      <div class="reply-box" id="replyVal"></div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+async function analyse() {
+  const email = document.getElementById('emailInput').value.trim();
+  const errorBox = document.getElementById('errorBox');
+  const btn = document.getElementById('analyseBtn');
+  const spinner = document.getElementById('spinner');
+  const btnLabel = document.getElementById('btnLabel');
+  const results = document.getElementById('results');
+
+  errorBox.style.display = 'none';
+  results.style.display = 'none';
+
+  if (!email) {
+    errorBox.textContent = 'Please paste an email before analysing.';
+    errorBox.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btnLabel.textContent = 'Analysing…';
+  spinner.style.display = 'block';
+
+  try {
+    const res = await fetch('/analyse', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || data.error) {
+      throw new Error(data.error || 'Something went wrong. Please try again.');
+    }
+
+    // Mood
+    document.getElementById('moodVal').textContent = data.sender_mood;
+
+    // Urgency badge
+    const urgencyEl = document.getElementById('urgencyVal');
+    const pillUrgency = document.getElementById('pillUrgency');
+    urgencyEl.textContent = data.urgency;
+    pillUrgency.className = 'meta-pill urgency-' + data.urgency.toLowerCase();
+
+    // Response time badge
+    const rt = data.recommended_response_time;
+    const rtEl = document.getElementById('responseTimeVal');
+    const pillRt = document.getElementById('pillResponseTime');
+    const isUrgent = rt === 'within 24 hours';
+    rtEl.textContent = isUrgent ? rt + ' ⚠️' : rt;
+    pillRt.className = 'meta-pill ' + (isUrgent ? 'rt-urgent' : 'rt-normal');
+
+    // Summary
+    document.getElementById('summaryVal').textContent = data.summary;
+
+    // Action items
+    const list = document.getElementById('actionList');
+    list.innerHTML = '';
+    (data.action_items || []).forEach(item => {
+      const li = document.createElement('li');
+      li.textContent = item;
+      list.appendChild(li);
+    });
+
+    // Suggested reply
+    document.getElementById('replyVal').textContent = data.suggested_reply;
+
+    results.style.display = 'flex';
+    results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  } catch (err) {
+    errorBox.textContent = err.message;
+    errorBox.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btnLabel.textContent = 'Analyse Email';
+    spinner.style.display = 'none';
+  }
+}
+</script>
+
+</body>
+</html>

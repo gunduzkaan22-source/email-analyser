@@ -1,0 +1,195 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: #f0f2f5;
+  color: #1a1a2e;
+  min-height: 100vh;
+}
+
+header {
+  background: #1a1a2e;
+  color: #fff;
+  padding: 1.25rem 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+header svg { flex-shrink: 0; }
+
+header h1 { font-size: 1.25rem; font-weight: 600; letter-spacing: 0.01em; }
+header p  { font-size: 0.8rem; color: #94a3b8; margin-top: 0.1rem; }
+
+main {
+  max-width: 860px;
+  margin: 2.5rem auto;
+  padding: 0 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Input card ── */
+.card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.75rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #1a1a2e; }
+
+textarea {
+  width: 100%;
+  height: 200px;
+  resize: vertical;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.875rem 1rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: #1a1a2e;
+  line-height: 1.6;
+  transition: border-color 0.2s;
+  outline: none;
+}
+textarea:focus { border-color: #6366f1; }
+textarea::placeholder { color: #94a3b8; }
+
+.btn {
+  margin-top: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.7rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+.btn:hover  { background: #4f46e5; }
+.btn:active { transform: scale(0.98); }
+.btn:disabled { background: #a5b4fc; cursor: not-allowed; }
+
+/* ── Spinner ── */
+.spinner {
+  width: 18px; height: 18px;
+  border: 2.5px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: none;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Error ── */
+.error-box {
+  display: none;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  border-radius: 8px;
+  padding: 0.875rem 1rem;
+  font-size: 0.9rem;
+  margin-top: 1rem;
+}
+
+/* ── Results ── */
+#results { display: none; flex-direction: column; gap: 1rem; }
+
+.meta-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.meta-pill {
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+}
+.meta-pill .label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #64748b;
+  margin-bottom: 0.35rem;
+}
+.meta-pill .value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a1a2e;
+  text-transform: capitalize;
+}
+
+/* urgency colours */
+.urgency-low    { border-color: #86efac; background: #f0fdf4; }
+.urgency-low    .value { color: #16a34a; }
+.urgency-medium { border-color: #fde68a; background: #fffbeb; }
+.urgency-medium .value { color: #d97706; }
+.urgency-high   { border-color: #fca5a5; background: #fef2f2; }
+.urgency-high   .value { color: #dc2626; }
+
+/* response-time colours */
+.rt-urgent  { border-color: #fca5a5; background: #fef2f2; }
+.rt-urgent  .value { color: #dc2626; }
+.rt-normal  { border-color: #e2e8f0; background: #f8fafc; }
+.rt-normal  .value { color: #1a1a2e; }
+
+.section-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #64748b;
+  margin-bottom: 0.6rem;
+}
+
+.summary-text {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: #334155;
+}
+
+.action-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.action-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  color: #334155;
+  line-height: 1.5;
+}
+.action-list li::before {
+  content: '';
+  flex-shrink: 0;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #6366f1;
+  margin-top: 0.45rem;
+}
+
+.reply-box {
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-left: 4px solid #6366f1;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: #334155;
+  white-space: pre-wrap;
+}
