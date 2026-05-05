@@ -1,4 +1,3 @@
-import os
 import anthropic
 import json
 from flask import Flask, render_template, request, jsonify
@@ -43,6 +42,3 @@ def analyse():
     cleaned = raw.replace("```json", "").replace("```", "").strip()
     return jsonify(json.loads(cleaned))
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port)
