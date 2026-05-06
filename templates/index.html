@@ -3,149 +3,424 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Email Analyser</title>
+  <title>MailLens — AI Email Analyser</title>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
 
-<header>
-  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
-  </svg>
-  <div>
-    <h1>Email Analyser</h1>
-    <p>Powered by Claude AI</p>
-  </div>
-</header>
+<div class="app" id="app">
 
-<main>
+  <!-- Mobile backdrop -->
+  <div class="backdrop" id="backdrop" onclick="closeSidebar()"></div>
 
-  <!-- Input -->
-  <div class="card">
-    <h2>Paste your email</h2>
-    <textarea id="emailInput" placeholder="Paste the email you want to analyse here…"></textarea>
-    <div class="error-box" id="errorBox"></div>
-    <button class="btn" id="analyseBtn" onclick="analyse()">
-      <span id="btnLabel">Analyse Email</span>
-      <div class="spinner" id="spinner"></div>
-    </button>
-  </div>
-
-  <!-- Results -->
-  <div id="results">
-
-    <div class="meta-row">
-      <div class="meta-pill" id="pillMood">
-        <div class="label">Sender Mood</div>
-        <div class="value" id="moodVal">—</div>
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
       </div>
-      <div class="meta-pill" id="pillUrgency">
-        <div class="label">Urgency</div>
-        <div class="value" id="urgencyVal">—</div>
-      </div>
-      <div class="meta-pill" id="pillResponseTime">
-        <div class="label">Respond By</div>
-        <div class="value" id="responseTimeVal">—</div>
+      <div>
+        <div class="sidebar-brand-name">MailLens</div>
+        <div class="sidebar-brand-sub">AI Email Analyser</div>
       </div>
     </div>
 
-    <div class="card">
-      <div class="section-label">Summary</div>
-      <p class="summary-text" id="summaryVal"></p>
+    <div class="sidebar-section-head">
+      <span class="sidebar-section-label">Recent Analyses</span>
+      <button class="clear-history-btn" onclick="clearHistory()">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+        Clear all
+      </button>
     </div>
 
-    <div class="card">
-      <div class="section-label">Action Items</div>
-      <ul class="action-list" id="actionList"></ul>
-    </div>
+    <div class="history-list" id="historyList"></div>
 
-    <div class="card">
-      <div class="section-label">Suggested Reply</div>
-      <div class="reply-box" id="replyVal"></div>
+    <div class="history-empty" id="historyEmpty">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+      <p>Your analyses will<br>appear here</p>
     </div>
+  </aside>
 
-  </div>
-</main>
+  <!-- Main panel -->
+  <div class="main-panel">
+
+    <header class="topbar">
+      <button class="menu-btn" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="topbar-brand">
+        <div class="topbar-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        </div>
+        <div>
+          <span class="topbar-name">MailLens</span>
+          <span class="topbar-dot">·</span>
+          <span class="topbar-sub">Powered by Claude AI</span>
+        </div>
+      </div>
+      <div style="flex:1"></div>
+      <span class="topbar-pill">Beta</span>
+    </header>
+
+    <main class="content" id="contentArea">
+      <div class="content-inner">
+
+        <!-- Input card -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Analyse your email</h2>
+            <p class="card-desc">Paste any email to get AI-powered insights, action items, and a suggested reply.</p>
+          </div>
+          <textarea id="emailInput" placeholder="Paste the email you want to analyse here…"></textarea>
+          <div class="error-box" id="errorBox"></div>
+          <div class="input-actions">
+            <button class="btn btn-primary" id="analyseBtn" onclick="analyse()">
+              <span id="btnLabel">Analyse Email</span>
+              <div class="spinner" id="spinner"></div>
+            </button>
+            <button class="btn btn-ghost" onclick="resetAll()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+              Reset
+            </button>
+          </div>
+        </div>
+
+        <!-- Loading skeleton -->
+        <div class="loading-card" id="loadingCard">
+          <div class="skeleton-lines">
+            <div class="skeleton-line" style="width:55%"></div>
+            <div class="skeleton-line" style="width:82%"></div>
+            <div class="skeleton-line" style="width:66%"></div>
+            <div class="skeleton-line" style="width:40%"></div>
+          </div>
+          <div class="loading-hint">
+            <div class="mini-spin"></div>
+            Analysing your email…
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div id="results" class="results">
+
+          <!-- Meta row -->
+          <div class="meta-row">
+            <div class="meta-card" id="pillMood">
+              <div class="meta-icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+              </div>
+              <div>
+                <div class="meta-label">Sender Mood</div>
+                <div class="meta-value" id="moodVal">—</div>
+              </div>
+            </div>
+            <div class="meta-card" id="pillUrgency">
+              <div class="meta-icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              </div>
+              <div>
+                <div class="meta-label">Urgency</div>
+                <div class="meta-value" id="urgencyVal">—</div>
+              </div>
+            </div>
+            <div class="meta-card" id="pillResponseTime">
+              <div class="meta-icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <div>
+                <div class="meta-label">Respond By</div>
+                <div class="meta-value" id="responseTimeVal">—</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Summary -->
+          <div class="card">
+            <div class="card-section-head">
+              <div class="section-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="3" y2="18"/></svg>
+                Summary
+              </div>
+            </div>
+            <p class="summary-text" id="summaryVal"></p>
+          </div>
+
+          <!-- Action items -->
+          <div class="card">
+            <div class="card-section-head">
+              <div class="section-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                Action Items
+              </div>
+            </div>
+            <ul class="action-list" id="actionList"></ul>
+          </div>
+
+          <!-- Suggested reply -->
+          <div class="card">
+            <div class="card-section-head">
+              <div class="section-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                Suggested Reply
+              </div>
+              <button class="copy-btn" id="copyBtn" onclick="copyReply()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                <span id="copyLabel">Copy</span>
+              </button>
+            </div>
+            <div class="reply-box" id="replyVal"></div>
+          </div>
+
+        </div><!-- /results -->
+
+      </div><!-- /content-inner -->
+    </main>
+
+  </div><!-- /main-panel -->
+</div><!-- /app -->
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
+const HISTORY_KEY = 'maillens_history';
+let activeHistoryId = null;
+
+/* ── Analyse ── */
 async function analyse() {
   const email = document.getElementById('emailInput').value.trim();
-  const errorBox = document.getElementById('errorBox');
-  const btn = document.getElementById('analyseBtn');
-  const spinner = document.getElementById('spinner');
-  const btnLabel = document.getElementById('btnLabel');
-  const results = document.getElementById('results');
+  const errorBox  = document.getElementById('errorBox');
+  const btn       = document.getElementById('analyseBtn');
+  const spinner   = document.getElementById('spinner');
+  const btnLabel  = document.getElementById('btnLabel');
+  const results   = document.getElementById('results');
+  const loading   = document.getElementById('loadingCard');
 
-  errorBox.style.display = 'none';
-  results.style.display = 'none';
+  errorBox.classList.remove('visible');
+  results.classList.remove('visible');
+  activeHistoryId = null;
 
   if (!email) {
     errorBox.textContent = 'Please paste an email before analysing.';
-    errorBox.style.display = 'block';
+    errorBox.classList.add('visible');
     return;
   }
 
   btn.disabled = true;
   btnLabel.textContent = 'Analysing…';
   spinner.style.display = 'block';
+  loading.classList.add('visible');
 
   try {
-    const res = await fetch('/analyse', {
+    const res  = await fetch('/analyse', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email })
     });
-
     const data = await res.json();
 
-    if (!res.ok || data.error) {
-      throw new Error(data.error || 'Something went wrong. Please try again.');
-    }
+    if (!res.ok || data.error) throw new Error(data.error || 'Something went wrong. Please try again.');
 
-    // Mood
-    document.getElementById('moodVal').textContent = data.sender_mood;
+    renderResults(data);
+    activeHistoryId = saveToHistory(email, data);
+    renderHistory();
 
-    // Urgency badge
-    const urgencyEl = document.getElementById('urgencyVal');
-    const pillUrgency = document.getElementById('pillUrgency');
-    urgencyEl.textContent = data.urgency;
-    pillUrgency.className = 'meta-pill urgency-' + data.urgency.toLowerCase();
-
-    // Response time badge
-    const rt = data.recommended_response_time;
-    const rtEl = document.getElementById('responseTimeVal');
-    const pillRt = document.getElementById('pillResponseTime');
-    const isUrgent = rt === 'within 24 hours';
-    rtEl.textContent = isUrgent ? rt + ' ⚠️' : rt;
-    pillRt.className = 'meta-pill ' + (isUrgent ? 'rt-urgent' : 'rt-normal');
-
-    // Summary
-    document.getElementById('summaryVal').textContent = data.summary;
-
-    // Action items
-    const list = document.getElementById('actionList');
-    list.innerHTML = '';
-    (data.action_items || []).forEach(item => {
-      const li = document.createElement('li');
-      li.textContent = item;
-      list.appendChild(li);
-    });
-
-    // Suggested reply
-    document.getElementById('replyVal').textContent = data.suggested_reply;
-
-    results.style.display = 'flex';
-    results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    results.classList.add('visible');
+    setTimeout(() => {
+      results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
 
   } catch (err) {
     errorBox.textContent = err.message;
-    errorBox.style.display = 'block';
+    errorBox.classList.add('visible');
   } finally {
     btn.disabled = false;
     btnLabel.textContent = 'Analyse Email';
     spinner.style.display = 'none';
+    loading.classList.remove('visible');
   }
 }
+
+/* ── Render results ── */
+function renderResults(data) {
+  document.getElementById('moodVal').textContent = data.sender_mood || '—';
+
+  const pillUrgency = document.getElementById('pillUrgency');
+  document.getElementById('urgencyVal').textContent = data.urgency || '—';
+  pillUrgency.className = 'meta-card urgency-' + (data.urgency || '').toLowerCase();
+
+  const rt      = data.recommended_response_time || '—';
+  const pillRt  = document.getElementById('pillResponseTime');
+  document.getElementById('responseTimeVal').textContent = rt;
+  pillRt.className = 'meta-card' + (rt === 'within 24 hours' ? ' rt-urgent' : '');
+
+  document.getElementById('summaryVal').textContent = data.summary || '';
+
+  const list = document.getElementById('actionList');
+  list.innerHTML = '';
+  (data.action_items || []).forEach(item => {
+    const li = document.createElement('li');
+    li.innerHTML =
+      '<span class="action-check">' +
+        '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
+      '</span>' +
+      '<span>' + escHtml(item) + '</span>';
+    list.appendChild(li);
+  });
+
+  document.getElementById('replyVal').textContent = data.suggested_reply || '';
+
+  const copyBtn = document.getElementById('copyBtn');
+  copyBtn.classList.remove('copied');
+  document.getElementById('copyLabel').textContent = 'Copy';
+}
+
+/* ── Copy reply ── */
+function copyReply() {
+  const text = document.getElementById('replyVal').textContent;
+  if (!text) return;
+
+  const finish = (ok) => {
+    const btn = document.getElementById('copyBtn');
+    if (ok) {
+      btn.classList.add('copied');
+      document.getElementById('copyLabel').textContent = 'Copied!';
+      showToast('Reply copied to clipboard');
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        document.getElementById('copyLabel').textContent = 'Copy';
+      }, 2000);
+    } else {
+      showToast('Copy failed — please select the text manually');
+    }
+  };
+
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => finish(true)).catch(() => finish(false));
+  } else {
+    finish(false);
+  }
+}
+
+/* ── Reset ── */
+function resetAll() {
+  document.getElementById('emailInput').value = '';
+  document.getElementById('errorBox').classList.remove('visible');
+  document.getElementById('results').classList.remove('visible');
+  document.getElementById('loadingCard').classList.remove('visible');
+  activeHistoryId = null;
+  renderHistory();
+  document.getElementById('contentArea').scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ── History ── */
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function saveToHistory(email, data) {
+  const history = getHistory();
+  const id = Date.now().toString();
+  const firstLine = email.split('\n')[0].trim();
+  history.unshift({
+    id,
+    date: new Date().toISOString(),
+    preview: (firstLine || email).slice(0, 70),
+    urgency: data.urgency || '',
+    data
+  });
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 50)));
+  return id;
+}
+
+function renderHistory() {
+  const history = getHistory();
+  const list    = document.getElementById('historyList');
+  const empty   = document.getElementById('historyEmpty');
+
+  if (history.length === 0) {
+    list.innerHTML = '';
+    empty.style.display = 'flex';
+    return;
+  }
+
+  empty.style.display = 'none';
+  list.innerHTML = history.map(item => `
+    <div class="history-item${item.id === activeHistoryId ? ' active' : ''}" onclick="loadHistoryItem('${escHtml(item.id)}')">
+      <div class="history-preview">${escHtml(item.preview || '(empty)')}</div>
+      <div class="history-meta">
+        <span class="history-time">${formatDate(item.date)}</span>
+        ${item.urgency ? `<span class="history-badge ${item.urgency.toLowerCase()}">${escHtml(item.urgency)}</span>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function loadHistoryItem(id) {
+  const item = getHistory().find(h => h.id === id);
+  if (!item) return;
+
+  activeHistoryId = id;
+  renderResults(item.data);
+  renderHistory();
+
+  const results = document.getElementById('results');
+  results.classList.remove('visible');
+  void results.offsetWidth;
+  results.classList.add('visible');
+
+  document.getElementById('contentArea').scrollTo({ top: 0, behavior: 'smooth' });
+  if (window.innerWidth < 768) closeSidebar();
+}
+
+function clearHistory() {
+  if (!confirm('Clear all history?')) return;
+  localStorage.removeItem(HISTORY_KEY);
+  activeHistoryId = null;
+  renderHistory();
+  showToast('History cleared');
+}
+
+/* ── Sidebar ── */
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('backdrop').classList.toggle('open');
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('backdrop').classList.remove('open');
+}
+
+/* ── Toast ── */
+let toastTimer;
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+/* ── Helpers ── */
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function formatDate(iso) {
+  const d    = new Date(iso);
+  const diff = Date.now() - d;
+  if (diff < 60000)    return 'just now';
+  if (diff < 3600000)  return Math.floor(diff / 60000) + 'm ago';
+  if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+/* ── Init ── */
+renderHistory();
 </script>
 
 </body>
