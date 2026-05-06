@@ -33,11 +33,26 @@
       </button>
     </div>
 
+    <div class="filter-bar">
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">
+        All <span class="filter-count" id="cnt-all"></span>
+      </button>
+      <button class="filter-btn" data-filter="high" onclick="setFilter('high')">
+        <span class="filter-dot high"></span>High <span class="filter-count" id="cnt-high"></span>
+      </button>
+      <button class="filter-btn" data-filter="medium" onclick="setFilter('medium')">
+        <span class="filter-dot medium"></span>Med <span class="filter-count" id="cnt-medium"></span>
+      </button>
+      <button class="filter-btn" data-filter="low" onclick="setFilter('low')">
+        <span class="filter-dot low"></span>Low <span class="filter-count" id="cnt-low"></span>
+      </button>
+    </div>
+
     <div class="history-list" id="historyList"></div>
 
     <div class="history-empty" id="historyEmpty">
       <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-      <p>Your analyses will<br>appear here</p>
+      <p id="historyEmptyMsg">Your analyses will<br>appear here</p>
     </div>
   </aside>
 
@@ -183,6 +198,7 @@
 <script>
 const HISTORY_KEY = 'maillens_history';
 let activeHistoryId = null;
+let activeFilter    = 'all';
 
 /* ── Analyse ── */
 async function analyse() {
@@ -221,6 +237,7 @@ async function analyse() {
 
     renderResults(data);
     activeHistoryId = saveToHistory(email, data);
+    activeFilter = 'all';
     renderHistory();
 
     results.classList.add('visible');
@@ -337,14 +354,38 @@ function renderHistory() {
   const list    = document.getElementById('historyList');
   const empty   = document.getElementById('historyEmpty');
 
-  if (history.length === 0) {
+  // Compute counts per urgency
+  const counts = { all: history.length, high: 0, medium: 0, low: 0 };
+  history.forEach(item => {
+    const u = (item.urgency || '').toLowerCase();
+    if (u in counts) counts[u]++;
+  });
+
+  // Update filter buttons
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    const f = btn.dataset.filter;
+    btn.classList.toggle('active', f === activeFilter);
+    const el = document.getElementById('cnt-' + f);
+    if (el) el.textContent = counts[f] > 0 ? counts[f] : '';
+  });
+
+  // Filter the list
+  const filtered = activeFilter === 'all'
+    ? history
+    : history.filter(h => (h.urgency || '').toLowerCase() === activeFilter);
+
+  if (filtered.length === 0) {
     list.innerHTML = '';
+    const msg = document.getElementById('historyEmptyMsg');
+    msg.innerHTML = activeFilter === 'all'
+      ? 'Your analyses will<br>appear here'
+      : `No <strong style="color:var(--navy-400)">${activeFilter}</strong> urgency<br>analyses yet`;
     empty.style.display = 'flex';
     return;
   }
 
   empty.style.display = 'none';
-  list.innerHTML = history.map(item => `
+  list.innerHTML = filtered.map(item => `
     <div class="history-item${item.id === activeHistoryId ? ' active' : ''}" onclick="loadHistoryItem('${escHtml(item.id)}')">
       <div class="history-preview">${escHtml(item.preview || '(empty)')}</div>
       <div class="history-meta">
@@ -353,6 +394,11 @@ function renderHistory() {
       </div>
     </div>
   `).join('');
+}
+
+function setFilter(filter) {
+  activeFilter = filter;
+  renderHistory();
 }
 
 function loadHistoryItem(id) {
@@ -376,6 +422,7 @@ function clearHistory() {
   if (!confirm('Clear all history?')) return;
   localStorage.removeItem(HISTORY_KEY);
   activeHistoryId = null;
+  activeFilter    = 'all';
   renderHistory();
   showToast('History cleared');
 }
