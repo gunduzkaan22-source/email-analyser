@@ -21,11 +21,23 @@ def analyse():
     if not email_text:
         return jsonify({'error': 'No email provided'}), 400
 
+    tone_guides = {
+        "Professional": "clear, respectful, and business-appropriate — warm but not casual, direct without being blunt",
+        "Friendly":     "warm, personable, and upbeat — like writing to a colleague you know well; contractions and light warmth are fine",
+        "Formal":       "polished and structured — full sentences, no contractions, measured language suited to senior stakeholders or official correspondence",
+        "Concise":      "brief and to the point — every sentence earns its place; cut pleasantries to a minimum without being abrupt",
+        "Empathetic":   "understanding and supportive — acknowledge feelings or pressure the sender may be under before moving to practicalities",
+    }
+    tone_guide = tone_guides.get(tone, tone_guides["Professional"])
+
     client = anthropic.Anthropic()
     response = client.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=1024,
-        system="You are a business email analyst. Always respond with valid JSON only. No markdown, no extra text, just pure JSON.",
+        system=(
+            "You are a business email analyst. Always respond with valid JSON only. "
+            "No markdown, no extra text, just pure JSON."
+        ),
         messages=[
             {
                 "role": "user",
@@ -34,8 +46,18 @@ def analyse():
                     "sender_mood, urgency (low/medium/high), summary, action_items (a list), "
                     "suggested_reply, recommended_response_time (one of: 'within 24 hours', "
                     "'within 48 hours', 'within a week', 'no response needed' — based on "
-                    f"urgency, deadlines mentioned, and tone).\n\n"
-                    f"Write the suggested_reply in a {tone} tone.\n\nEmail:\n{email_text}"
+                    "urgency, deadlines mentioned, and tone).\n\n"
+                    f"For suggested_reply, write as if you are the recipient drafting a real response. "
+                    f"Tone: {tone} — {tone_guide}. "
+                    "Structure it with a natural greeting, a body that directly addresses the specific "
+                    "points and questions raised in the email (reference them concretely — no vague "
+                    "acknowledgements), and a clear sign-off. "
+                    "Keep it concise but complete: say what needs to be said, nothing more. "
+                    "Avoid filler phrases like 'I hope this email finds you well', 'please do not "
+                    "hesitate to reach out', 'as per my previous email', or 'going forward'. "
+                    "Write like a thoughtful human, not a template. "
+                    "Use \\n for line breaks between paragraphs.\n\n"
+                    f"Email:\n{email_text}"
                 )
             }
         ]
