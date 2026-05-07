@@ -88,16 +88,6 @@
           </div>
           <textarea id="emailInput" placeholder="Paste the email you want to analyse here…"></textarea>
           <div class="error-box" id="errorBox"></div>
-          <div class="tone-row">
-            <label class="tone-label" for="toneSelect">Reply tone</label>
-            <select id="toneSelect" class="tone-select">
-              <option value="Professional">Professional</option>
-              <option value="Friendly">Friendly</option>
-              <option value="Formal">Formal</option>
-              <option value="Concise">Concise</option>
-              <option value="Empathetic">Empathetic</option>
-            </select>
-          </div>
           <div class="input-actions">
             <button class="btn btn-primary" id="analyseBtn" onclick="analyse()">
               <span id="btnLabel">Analyse Email</span>
@@ -192,7 +182,21 @@
                 <span id="copyLabel">Copy</span>
               </button>
             </div>
-            <div class="reply-box" id="replyVal"></div>
+            <div class="reply-wrap" id="replyWrap">
+              <div class="reply-box" id="replyVal"></div>
+              <div class="reply-regen-loading" id="replyRegenLoading">
+                <div class="mini-spin"></div>
+                Regenerating reply…
+              </div>
+            </div>
+            <div class="tone-pills">
+              <span class="tone-pill-label">Tone</span>
+              <button class="tone-pill active" data-tone="Professional" onclick="setTone('Professional')">Professional</button>
+              <button class="tone-pill" data-tone="Friendly"     onclick="setTone('Friendly')">Friendly</button>
+              <button class="tone-pill" data-tone="Formal"       onclick="setTone('Formal')">Formal</button>
+              <button class="tone-pill" data-tone="Concise"      onclick="setTone('Concise')">Concise</button>
+              <button class="tone-pill" data-tone="Empathetic"   onclick="setTone('Empathetic')">Empathetic</button>
+            </div>
           </div>
 
         </div><!-- /results -->
@@ -209,11 +213,12 @@
 const HISTORY_KEY = 'maillens_history';
 let activeHistoryId = null;
 let activeFilter    = 'all';
+let currentEmail    = '';
+let activeTone      = 'Professional';
 
 /* ── Analyse ── */
 async function analyse() {
   const email = document.getElementById('emailInput').value.trim();
-  const tone  = document.getElementById('toneSelect').value;
   const errorBox  = document.getElementById('errorBox');
   const btn       = document.getElementById('analyseBtn');
   const spinner   = document.getElementById('spinner');
@@ -240,12 +245,14 @@ async function analyse() {
     const res  = await fetch('/analyse', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, tone })
+      body: JSON.stringify({ email, tone: 'Professional' })
     });
     const data = await res.json();
 
     if (!res.ok || data.error) throw new Error(data.error || 'Something went wrong. Please try again.');
 
+    currentEmail = email;
+    activeTone   = 'Professional';
     renderResults(data);
     activeHistoryId = saveToHistory(email, data);
     activeFilter = 'all';
@@ -299,6 +306,43 @@ function renderResults(data) {
   const copyBtn = document.getElementById('copyBtn');
   copyBtn.classList.remove('copied');
   document.getElementById('copyLabel').textContent = 'Copy';
+
+  document.querySelectorAll('.tone-pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.tone === activeTone);
+  });
+}
+
+/* ── Tone pills ── */
+async function setTone(tone) {
+  if (tone === activeTone || !currentEmail) return;
+
+  activeTone = tone;
+  document.querySelectorAll('.tone-pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.tone === tone);
+    p.disabled = true;
+  });
+
+  const wrap = document.getElementById('replyWrap');
+  wrap.classList.add('loading');
+
+  try {
+    const res  = await fetch('/regenerate-reply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: currentEmail, tone })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Regeneration failed.');
+
+    document.getElementById('replyVal').textContent = data.suggested_reply || '';
+    document.getElementById('copyBtn').classList.remove('copied');
+    document.getElementById('copyLabel').textContent = 'Copy';
+  } catch (err) {
+    showToast(err.message);
+  } finally {
+    wrap.classList.remove('loading');
+    document.querySelectorAll('.tone-pill').forEach(p => { p.disabled = false; });
+  }
 }
 
 /* ── Copy reply ── */
@@ -354,6 +398,7 @@ function saveToHistory(email, data) {
     date: new Date().toISOString(),
     preview: (firstLine || email).slice(0, 70),
     urgency: data.urgency || '',
+    email,
     data
   });
   localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 50)));
@@ -417,6 +462,8 @@ function loadHistoryItem(id) {
   if (!item) return;
 
   activeHistoryId = id;
+  currentEmail    = item.email || '';
+  activeTone      = 'Professional';
   renderResults(item.data);
   renderHistory();
 
