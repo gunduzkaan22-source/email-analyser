@@ -76,6 +76,13 @@
             <h1 class="card-title">Analyse your email</h1>
             <p class="card-desc">Paste any email to get AI-powered insights, action items, and a suggested reply.</p>
           </div>
+          <div class="name-row">
+            <label class="name-label" for="senderName">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Sign off as
+            </label>
+            <input type="text" id="senderName" class="name-input" placeholder="Your name" autocomplete="name" />
+          </div>
           <textarea id="emailInput" placeholder="Paste the email you want to analyse here…"></textarea>
           <div class="error-box" id="errorBox"></div>
           <div class="input-actions">
@@ -236,7 +243,7 @@ async function analyse() {
     const res  = await fetch('/analyse', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, tone: 'Professional' })
+      body: JSON.stringify({ email, tone: 'Professional', name: document.getElementById('senderName').value.trim() })
     });
     const data = await res.json();
 
@@ -313,6 +320,7 @@ async function setTone(tone) {
     p.classList.toggle('active', p.dataset.tone === tone);
   });
 
+  // Cache hit — instant swap, no network call
   if (replyCache[tone] !== undefined) {
     document.getElementById('replyVal').textContent = replyCache[tone];
     document.getElementById('copyBtn').classList.remove('copied');
@@ -320,27 +328,58 @@ async function setTone(tone) {
     return;
   }
 
+  // Cache miss — stream from API
   document.querySelectorAll('.tone-pill').forEach(p => { p.disabled = true; });
-  const wrap = document.getElementById('replyWrap');
-  wrap.classList.add('loading');
+  const replyEl = document.getElementById('replyVal');
+  replyEl.textContent = '';
+  replyEl.classList.add('streaming');
+  document.getElementById('copyBtn').classList.remove('copied');
+  document.getElementById('copyLabel').textContent = 'Copy';
+
+  let fullText = '';
 
   try {
+    const name = document.getElementById('senderName').value.trim();
     const res  = await fetch('/regenerate-reply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: currentEmail, tone })
+      body: JSON.stringify({ email: currentEmail, tone, name })
     });
-    const data = await res.json();
-    if (!res.ok || data.error) throw new Error(data.error || 'Regeneration failed.');
 
-    replyCache[tone] = data.suggested_reply || '';
-    document.getElementById('replyVal').textContent = replyCache[tone];
-    document.getElementById('copyBtn').classList.remove('copied');
-    document.getElementById('copyLabel').textContent = 'Copy';
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.error || 'Regeneration failed.');
+    }
+
+    const reader  = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop(); // hold incomplete line for next chunk
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const payload = line.slice(6).trim();
+        if (payload === '[DONE]') continue;
+        let parsed;
+        try { parsed = JSON.parse(payload); } catch { continue; }
+        if (parsed.error) throw new Error(parsed.error);
+        fullText += parsed.chunk || '';
+        replyEl.textContent = fullText;
+      }
+    }
+
+    replyCache[tone] = fullText;
   } catch (err) {
     showToast(err.message);
   } finally {
-    wrap.classList.remove('loading');
+    replyEl.classList.remove('streaming');
     document.querySelectorAll('.tone-pill').forEach(p => { p.disabled = false; });
   }
 }
@@ -522,6 +561,14 @@ function formatDate(iso) {
 }
 
 /* ── Init ── */
+(function initName() {
+  const input = document.getElementById('senderName');
+  input.value = localStorage.getItem('maillens_name') || '';
+  input.addEventListener('input', () => {
+    localStorage.setItem('maillens_name', input.value.trim());
+  });
+})();
+
 renderHistory();
 </script>
 

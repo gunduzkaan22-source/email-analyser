@@ -1,7 +1,7 @@
 import os
-import anthropic
 import json
-from flask import Flask, render_template, request, jsonify
+import anthropic
+from flask import Flask, render_template, request, jsonify, Response, stream_with_context
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -38,11 +38,13 @@ def analyse():
     data = request.get_json()
     email_text = (data or {}).get('email', '').strip()
     tone = (data or {}).get('tone', 'Professional').strip() or 'Professional'
+    name = (data or {}).get('name', '').strip()
 
     if not email_text:
         return jsonify({'error': 'No email provided'}), 400
 
     tone_guide = TONE_GUIDES.get(tone, TONE_GUIDES["Professional"])
+    sign_off = f" Sign off the reply with the name: {name}." if name else ""
 
     client = anthropic.Anthropic()
     response = client.messages.create(
@@ -63,7 +65,7 @@ def analyse():
                     "urgency, deadlines mentioned, and tone).\n\n"
                     "For suggested_reply, write as if you are the recipient drafting a real response. "
                     f"Tone: {tone} — {tone_guide}. "
-                    f"{REPLY_INSTRUCTIONS}\n\n"
+                    f"{REPLY_INSTRUCTIONS}{sign_off}\n\n"
                     f"Email:\n{email_text}"
                 )
             }
@@ -80,40 +82,62 @@ def regenerate_reply():
     data = request.get_json()
     email_text = (data or {}).get('email', '').strip()
     tone = (data or {}).get('tone', 'Professional').strip() or 'Professional'
+    name = (data or {}).get('name', '').strip()
 
     if not email_text:
         return jsonify({'error': 'No email provided'}), 400
 
     tone_guide = TONE_GUIDES.get(tone, TONE_GUIDES["Professional"])
+    sign_off = f" Sign off with the name: {name}." if name else ""
 
     client = anthropic.Anthropic()
-    response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=512,
-        system=(
-            "You are a business email reply writer. Always respond with valid JSON only. "
-            "No markdown, no extra text, just pure JSON."
-        ),
-        messages=[
-            {
-                "role": "user",
-                "content": (
-                    "Write a reply to the following email. "
-                    "Return a JSON object with a single field: suggested_reply.\n\n"
-                    "Write as if you are the recipient drafting a real response. "
-                    f"Tone: {tone} — {tone_guide}. "
-                    f"{REPLY_INSTRUCTIONS}\n\n"
-                    f"Email:\n{email_text}"
-                )
-            }
-        ]
-    )
 
-    raw = response.content[0].text
-    cleaned = raw.replace("```json", "").replace("```", "").strip()
-    return jsonify(json.loads(cleaned))
+    def generate():
+        try:
+            with client.messages.stream(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=512,
+                system=(
+                    "You are a business email reply writer. "
+                    "Write only the reply text itself — no JSON, no markdown, no preamble."
+                ),
+                messages=[
+                    {
+                        "role": "user",
+                        "content": (
+                            "Write a reply to the following email.\n\n"
+                            "Write as if you are the recipient drafting a real response. "
+                            f"Tone: {tone} — {tone_guide}. "
+                            "Structure it with a natural greeting, a body that directly addresses "
+                            "the specific points and questions raised in the email (reference them "
+                            "concretely — no vague acknowledgements), and a clear sign-off."
+                            f"{sign_off} "
+                            "Keep it concise but complete. "
+                            "Avoid filler phrases like 'I hope this email finds you well', "
+                            "'please do not hesitate to reach out', 'as per my previous email', "
+                            "or 'going forward'. Write like a thoughtful human, not a template. "
+                            "Use blank lines between paragraphs.\n\n"
+                            f"Email:\n{email_text}"
+                        )
+                    }
+                ]
+            ) as stream:
+                for text in stream.text_stream:
+                    yield f"data: {json.dumps({'chunk': text})}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no',
+        }
+    )
 
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, threaded=True)
