@@ -132,7 +132,18 @@
               </div>
               <div class="metric-body">
                 <div class="metric-label">Urgency</div>
-                <div class="metric-value" id="urgencyVal">—</div>
+                <div class="urgency-value-row">
+                  <div class="metric-value" id="urgencyVal">—</div>
+                  <button class="urgency-override-btn" id="urgencyOverrideBtn" onclick="openUrgencyOverride()" title="Override urgency" aria-label="Override urgency">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                </div>
+                <div class="urgency-pills" id="urgencyPills">
+                  <button class="urgency-pill-btn" data-urgency="Low" onclick="setUrgencyOverride('Low')">Low</button>
+                  <button class="urgency-pill-btn" data-urgency="Medium" onclick="setUrgencyOverride('Medium')">Medium</button>
+                  <button class="urgency-pill-btn" data-urgency="High" onclick="setUrgencyOverride('High')">High</button>
+                </div>
+                <div class="urgency-manual-label" id="urgencyManualLabel">Manually set</div>
               </div>
             </div>
             <div class="metric-card" id="pillResponseTime">
@@ -208,11 +219,12 @@
 
 <script>
 const HISTORY_KEY = 'maillens_history';
-let activeHistoryId = null;
-let activeFilter    = 'all';
-let currentEmail    = '';
-let activeTone      = 'Professional';
-let replyCache      = {};
+let activeHistoryId      = null;
+let activeFilter         = 'all';
+let currentEmail         = '';
+let activeTone           = 'Professional';
+let replyCache           = {};
+let urgencyOverrideOpen  = false;
 
 /* ── Analyse ── */
 async function analyse() {
@@ -281,6 +293,12 @@ function renderResults(data) {
   document.getElementById('urgencyVal').textContent = data.urgency || '—';
   pillUrgency.className = 'metric-card urgency-' + (data.urgency || '').toLowerCase();
 
+  document.getElementById('urgencyOverrideBtn').classList.add('visible');
+  document.getElementById('urgencyPills').classList.remove('open');
+  document.getElementById('urgencyManualLabel').classList.remove('visible');
+  document.querySelectorAll('.urgency-pill-btn').forEach(p => p.classList.remove('selected'));
+  urgencyOverrideOpen = false;
+
   const rt     = data.recommended_response_time || '—';
   const pillRt = document.getElementById('pillResponseTime');
   document.getElementById('responseTimeVal').textContent = rt;
@@ -309,6 +327,35 @@ function renderResults(data) {
   document.querySelectorAll('.tone-pill').forEach(p => {
     p.classList.toggle('active', p.dataset.tone === activeTone);
   });
+}
+
+/* ── Urgency override ── */
+function openUrgencyOverride() {
+  urgencyOverrideOpen = !urgencyOverrideOpen;
+  document.getElementById('urgencyPills').classList.toggle('open', urgencyOverrideOpen);
+}
+
+function setUrgencyOverride(urgency) {
+  urgencyOverrideOpen = false;
+  const pillCard = document.getElementById('pillUrgency');
+  document.getElementById('urgencyVal').textContent = urgency;
+  pillCard.className = 'metric-card urgency-' + urgency.toLowerCase();
+  document.getElementById('urgencyPills').classList.remove('open');
+  document.getElementById('urgencyManualLabel').classList.add('visible');
+  document.querySelectorAll('.urgency-pill-btn').forEach(p => {
+    p.classList.toggle('selected', p.dataset.urgency === urgency);
+  });
+
+  if (activeHistoryId) {
+    const history = getHistory();
+    const item = history.find(h => h.id === activeHistoryId);
+    if (item) {
+      item.urgency         = urgency;
+      item.urgencyOverride = true;
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+      renderHistory();
+    }
+  }
 }
 
 /* ── Tone pills ── */
@@ -417,6 +464,11 @@ function resetAll() {
   document.getElementById('errorBox').classList.remove('visible');
   document.getElementById('results').classList.remove('visible');
   document.getElementById('loadingCard').classList.remove('visible');
+  document.getElementById('urgencyOverrideBtn').classList.remove('visible');
+  document.getElementById('urgencyPills').classList.remove('open');
+  document.getElementById('urgencyManualLabel').classList.remove('visible');
+  document.querySelectorAll('.urgency-pill-btn').forEach(p => p.classList.remove('selected'));
+  urgencyOverrideOpen = false;
   activeHistoryId = null;
   renderHistory();
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -501,6 +553,16 @@ function loadHistoryItem(id) {
   currentEmail    = item.email || '';
   activeTone      = 'Professional';
   renderResults(item.data);
+
+  if (item.urgencyOverride) {
+    document.getElementById('urgencyVal').textContent = item.urgency;
+    document.getElementById('pillUrgency').className  = 'metric-card urgency-' + (item.urgency || '').toLowerCase();
+    document.getElementById('urgencyManualLabel').classList.add('visible');
+    document.querySelectorAll('.urgency-pill-btn').forEach(p => {
+      p.classList.toggle('selected', p.dataset.urgency === item.urgency);
+    });
+  }
+
   renderHistory();
 
   const results = document.getElementById('results');

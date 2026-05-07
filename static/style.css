@@ -676,6 +676,99 @@ textarea::placeholder { color: var(--navy-400); }
 .rt-urgent .metric-icon { background: #fef2f2; color: #b91c1c; }
 .rt-urgent .metric-value { color: #b91c1c; }
 
+/* ── Urgency override ── */
+#pillUrgency {
+  align-items: flex-start;
+  transition: transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.2s, border-color 0.25s ease;
+}
+
+#pillUrgency .metric-icon {
+  margin-top: 0.125rem;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+#pillUrgency .metric-value {
+  transition: color 0.25s ease;
+}
+
+.urgency-value-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.urgency-override-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--navy-300);
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.urgency-override-btn.visible { display: inline-flex; }
+.urgency-override-btn:hover { color: var(--navy-600); background: var(--navy-100); }
+
+.urgency-pills {
+  display: none;
+  gap: 0.3rem;
+  margin-top: 0.5rem;
+}
+
+.urgency-pills.open {
+  display: flex;
+  animation: fadeSlideDown 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes fadeSlideDown {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.urgency-pill-btn {
+  background: var(--navy-50);
+  border: 1px solid var(--navy-200);
+  color: var(--navy-600);
+  border-radius: 12px;
+  padding: 0.22rem 0.6rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  letter-spacing: 0.02em;
+  transition: all 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+  line-height: 1;
+}
+
+.urgency-pill-btn:hover { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+
+.urgency-pill-btn[data-urgency="Low"]:hover,
+.urgency-pill-btn[data-urgency="Low"].selected { background: #f0fdf4; border-color: #86efac; color: #15803d; }
+
+.urgency-pill-btn[data-urgency="Medium"]:hover,
+.urgency-pill-btn[data-urgency="Medium"].selected { background: #fffbeb; border-color: #fde68a; color: #b45309; }
+
+.urgency-pill-btn[data-urgency="High"]:hover,
+.urgency-pill-btn[data-urgency="High"].selected { background: #fef2f2; border-color: #fca5a5; color: #b91c1c; }
+
+.urgency-manual-label {
+  display: none;
+  font-size: 0.6rem;
+  color: var(--navy-400);
+  font-weight: 500;
+  margin-top: 0.3rem;
+  font-style: italic;
+  letter-spacing: 0.01em;
+}
+
+.urgency-manual-label.visible { display: block; }
+
 /* ── Result cards ── */
 .result-card {
   padding: 1.5rem 1.875rem;
