@@ -412,6 +412,43 @@ textarea:focus {
 
 textarea::placeholder { color: var(--navy-400); }
 
+/* ── Tone selector ── */
+.tone-row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-top: 0.875rem;
+}
+
+.tone-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--navy-600);
+  white-space: nowrap;
+}
+
+.tone-select {
+  appearance: none;
+  background: var(--navy-50) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 0.65rem center;
+  border: 1.5px solid var(--navy-200);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 2rem 0.45rem 0.75rem;
+  font-size: 0.85rem;
+  font-family: inherit;
+  font-weight: 500;
+  color: var(--navy-800);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  min-width: 148px;
+}
+
+.tone-select:focus {
+  border-color: var(--teal-500);
+  box-shadow: 0 0 0 3px rgba(20,184,166,0.1);
+  background-color: var(--white);
+}
+
 /* ── Input actions ── */
 .input-actions {
   margin-top: 1rem;

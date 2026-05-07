@@ -16,6 +16,7 @@ def index():
 def analyse():
     data = request.get_json()
     email_text = (data or {}).get('email', '').strip()
+    tone = (data or {}).get('tone', 'Professional').strip() or 'Professional'
 
     if not email_text:
         return jsonify({'error': 'No email provided'}), 400
@@ -33,7 +34,8 @@ def analyse():
                     "sender_mood, urgency (low/medium/high), summary, action_items (a list), "
                     "suggested_reply, recommended_response_time (one of: 'within 24 hours', "
                     "'within 48 hours', 'within a week', 'no response needed' — based on "
-                    f"urgency, deadlines mentioned, and tone).\n\nEmail:\n{email_text}"
+                    f"urgency, deadlines mentioned, and tone).\n\n"
+                    f"Write the suggested_reply in a {tone} tone.\n\nEmail:\n{email_text}"
                 )
             }
         ]

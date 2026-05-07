@@ -88,6 +88,16 @@
           </div>
           <textarea id="emailInput" placeholder="Paste the email you want to analyse here…"></textarea>
           <div class="error-box" id="errorBox"></div>
+          <div class="tone-row">
+            <label class="tone-label" for="toneSelect">Reply tone</label>
+            <select id="toneSelect" class="tone-select">
+              <option value="Professional">Professional</option>
+              <option value="Friendly">Friendly</option>
+              <option value="Formal">Formal</option>
+              <option value="Concise">Concise</option>
+              <option value="Empathetic">Empathetic</option>
+            </select>
+          </div>
           <div class="input-actions">
             <button class="btn btn-primary" id="analyseBtn" onclick="analyse()">
               <span id="btnLabel">Analyse Email</span>
@@ -203,6 +213,7 @@ let activeFilter    = 'all';
 /* ── Analyse ── */
 async function analyse() {
   const email = document.getElementById('emailInput').value.trim();
+  const tone  = document.getElementById('toneSelect').value;
   const errorBox  = document.getElementById('errorBox');
   const btn       = document.getElementById('analyseBtn');
   const spinner   = document.getElementById('spinner');
@@ -229,7 +240,7 @@ async function analyse() {
     const res  = await fetch('/analyse', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
+      body: JSON.stringify({ email, tone })
     });
     const data = await res.json();
 
