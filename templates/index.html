@@ -205,6 +205,7 @@ let activeHistoryId = null;
 let activeFilter    = 'all';
 let currentEmail    = '';
 let activeTone      = 'Professional';
+let replyCache      = {};
 
 /* ── Analyse ── */
 async function analyse() {
@@ -243,6 +244,7 @@ async function analyse() {
 
     currentEmail = email;
     activeTone   = 'Professional';
+    replyCache   = { Professional: data.suggested_reply || '' };
     renderResults(data);
     activeHistoryId = saveToHistory(email, data);
     activeFilter = 'all';
@@ -309,9 +311,16 @@ async function setTone(tone) {
   activeTone = tone;
   document.querySelectorAll('.tone-pill').forEach(p => {
     p.classList.toggle('active', p.dataset.tone === tone);
-    p.disabled = true;
   });
 
+  if (replyCache[tone] !== undefined) {
+    document.getElementById('replyVal').textContent = replyCache[tone];
+    document.getElementById('copyBtn').classList.remove('copied');
+    document.getElementById('copyLabel').textContent = 'Copy';
+    return;
+  }
+
+  document.querySelectorAll('.tone-pill').forEach(p => { p.disabled = true; });
   const wrap = document.getElementById('replyWrap');
   wrap.classList.add('loading');
 
@@ -324,7 +333,8 @@ async function setTone(tone) {
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || 'Regeneration failed.');
 
-    document.getElementById('replyVal').textContent = data.suggested_reply || '';
+    replyCache[tone] = data.suggested_reply || '';
+    document.getElementById('replyVal').textContent = replyCache[tone];
     document.getElementById('copyBtn').classList.remove('copied');
     document.getElementById('copyLabel').textContent = 'Copy';
   } catch (err) {
