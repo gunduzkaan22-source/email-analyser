@@ -346,7 +346,7 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-const HISTORY_KEY = 'maillens_history';
+let historyData         = [];
 let activeHistoryId     = null;
 let activeFilter        = 'all';
 let currentEmail        = '';
@@ -419,7 +419,7 @@ async function analyse() {
     isThreadMode  = false;
 
     renderResults(data);
-    activeHistoryId = saveToHistory(email, data);
+    activeHistoryId = await saveToHistory(email, data);
     activeFilter = 'all';
     renderHistory();
 
@@ -521,13 +521,16 @@ function setUrgencyOverride(urgency) {
     p.classList.toggle('selected', p.dataset.urgency === urgency);
   });
   if (activeHistoryId) {
-    const history = getHistory();
-    const item = history.find(h => h.id === activeHistoryId);
+    const item = historyData.find(h => h.id === activeHistoryId);
     if (item) {
       item.urgency = urgency;
       item.urgencyOverride = true;
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
       renderHistory();
+      fetch('/history/' + encodeURIComponent(activeHistoryId), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ urgency, urgencyOverride: true })
+      }).catch(() => {});
     }
   }
 }
@@ -825,7 +828,7 @@ async function analyseThreadEmail() {
     currentThread.push({ email, analysis: data, date: new Date().toISOString() });
     document.getElementById('threadEmailInput').value = '';
     renderThreadView();
-    saveThreadToHistory();
+    await saveThreadToHistory();
     renderHistory();
     setTimeout(() => document.getElementById('threadAddSection').scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
   } catch (err) {
@@ -837,8 +840,7 @@ async function analyseThreadEmail() {
   }
 }
 
-function saveThreadToHistory() {
-  const history = getHistory();
+async function saveThreadToHistory() {
   const topUrgency = currentThread.reduce((best, t) => {
     return (URGENCY_ORDER[(t.analysis.urgency || 'low').toLowerCase()] || 0) >
            (URGENCY_ORDER[(best || 'low').toLowerCase()] || 0)
@@ -846,39 +848,71 @@ function saveThreadToHistory() {
   }, 'low');
   const firstEmail = currentThread[0]?.email || '';
   const preview    = firstEmail.split('\n')[0].trim().slice(0, 70);
+  const threadData = currentThread.map(t => ({ email: t.email, analysis: t.analysis, date: t.date }));
 
   if (activeHistoryId) {
-    const history2 = getHistory();
-    const item = history2.find(h => h.id === activeHistoryId);
+    const item = historyData.find(h => h.id === activeHistoryId);
     if (item) {
       item.isThread = true; item.threadCount = currentThread.length; item.urgency = topUrgency;
-      item.thread   = currentThread.map(t => ({ email: t.email, analysis: t.analysis, date: t.date }));
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(history2));
+      item.thread   = threadData;
+      fetch('/history/' + encodeURIComponent(activeHistoryId), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isThread: true, threadCount: currentThread.length, urgency: topUrgency, thread: threadData })
+      }).catch(() => {});
       return;
     }
   }
 
-  const id = Date.now().toString();
-  history.unshift({ id, date: new Date().toISOString(), preview, urgency: topUrgency, isThread: true, threadCount: currentThread.length, thread: currentThread.map(t => ({ email: t.email, analysis: t.analysis, date: t.date })) });
-  activeHistoryId = id;
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 50)));
+  const item = { id: null, date: new Date().toISOString(), preview, urgency: topUrgency, isThread: true, threadCount: currentThread.length, thread: threadData, email: firstEmail, data: currentThread[0]?.analysis || {} };
+  historyData.unshift(item);
+  historyData = historyData.slice(0, 50);
+
+  try {
+    const res = await fetch('/history', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ preview, urgency: topUrgency, email: firstEmail, data: item.data, isThread: true, threadCount: currentThread.length, thread: threadData })
+    });
+    if (res.ok) { const json = await res.json(); item.id = json.id; activeHistoryId = json.id; return; }
+  } catch(e) {}
+
+  const fallbackId = Date.now().toString();
+  item.id = fallbackId;
+  activeHistoryId = fallbackId;
 }
 
 /* ── History ── */
-function getHistory() {
-  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
+async function loadHistory() {
+  try {
+    const res = await fetch('/history');
+    if (res.ok) historyData = await res.json();
+  } catch(e) {}
+  renderHistory();
 }
 
-function saveToHistory(email, data) {
-  const history = getHistory();
-  const id = Date.now().toString();
-  history.unshift({ id, date: new Date().toISOString(), preview: (email.split('\n')[0].trim() || email).slice(0, 70), urgency: data.urgency || '', email, data });
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 50)));
-  return id;
+async function saveToHistory(email, data) {
+  const preview = (email.split('\n')[0].trim() || email).slice(0, 70);
+  const item = { id: null, date: new Date().toISOString(), preview, urgency: data.urgency || '', email, data, isThread: false, threadCount: 0, thread: null };
+  historyData.unshift(item);
+  historyData = historyData.slice(0, 50);
+
+  try {
+    const res = await fetch('/history', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ preview, urgency: data.urgency || '', email, data, isThread: false, threadCount: 0, thread: null })
+    });
+    if (res.ok) { const json = await res.json(); item.id = json.id; return json.id; }
+  } catch(e) {}
+
+  const fallbackId = Date.now().toString();
+  item.id = fallbackId;
+  return fallbackId;
 }
 
 function renderHistory() {
-  const history = getHistory();
+  const history = historyData;
   const list  = document.getElementById('historyList');
   const empty = document.getElementById('historyEmpty');
 
@@ -930,7 +964,7 @@ function setFilter(filter) {
 }
 
 function loadHistoryItem(id) {
-  const item = getHistory().find(h => h.id === id);
+  const item = historyData.find(h => h.id === id);
   if (!item) return;
 
   activeHistoryId = id;
@@ -976,9 +1010,10 @@ function loadHistoryItem(id) {
   if (window.innerWidth < 700) closeSidebar();
 }
 
-function clearHistory() {
+async function clearHistory() {
   if (!confirm('Clear all history?')) return;
-  localStorage.removeItem(HISTORY_KEY);
+  try { await fetch('/history', { method: 'DELETE' }); } catch(e) {}
+  historyData     = [];
   activeHistoryId = null;
   activeFilter    = 'all';
   renderHistory();
@@ -1052,7 +1087,7 @@ function setTheme(theme) {
   });
 })();
 
-renderHistory();
+loadHistory();
 </script>
 
 </body>

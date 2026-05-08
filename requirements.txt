@@ -3,3 +3,4 @@ flask
 flask-limiter
 python-dotenv
 gunicorn
+supabase==2.4.6

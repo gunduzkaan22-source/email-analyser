@@ -1,14 +1,28 @@
 import os
 import json
+import uuid
 import anthropic
-from flask import Flask, render_template, request, jsonify, Response, stream_with_context
+from flask import Flask, render_template, request, jsonify, Response, stream_with_context, session
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
+try:
+    from supabase import create_client as _supabase_create_client
+except ImportError:
+    _supabase_create_client = None
 
 load_dotenv()
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-please-set-SECRET_KEY-in-env')
+
+_SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
+_SUPABASE_KEY = os.environ.get('SUPABASE_ANON_KEY', '')
+supabase_db = (
+    _supabase_create_client(_SUPABASE_URL, _SUPABASE_KEY)
+    if (_supabase_create_client and _SUPABASE_URL and _SUPABASE_KEY)
+    else None
+)
 
 limiter = Limiter(
     get_remote_address,
@@ -20,6 +34,16 @@ limiter = Limiter(
 @app.errorhandler(429)
 def ratelimit_handler(e):
     return jsonify({'error': 'Rate limit exceeded. You can analyse up to 20 emails per hour. Please try again later.'}), 429
+
+
+@app.before_request
+def ensure_session():
+    if 'uid' not in session:
+        session['uid'] = str(uuid.uuid4())
+
+
+def _uid():
+    return session.get('uid', '')
 
 TONE_GUIDES = {
     "Professional": "clear, respectful, and business-appropriate — warm but not casual, direct without being blunt",
@@ -45,6 +69,104 @@ REPLY_INSTRUCTIONS = (
 def index():
     return render_template('index.html')
 
+
+# ── History routes ──────────────────────────────────────────────────────────
+
+@app.route('/history', methods=['GET'])
+def get_history():
+    if not supabase_db:
+        return jsonify([])
+    try:
+        result = (supabase_db.table('email_history')
+                  .select('*')
+                  .eq('session_id', _uid())
+                  .order('created_at', desc=True)
+                  .limit(50)
+                  .execute())
+        items = []
+        for row in result.data:
+            aj = row.get('analysis_json') or {}
+            items.append({
+                'id':              row['id'],
+                'date':            row['created_at'],
+                'preview':         row.get('preview', ''),
+                'urgency':         row.get('urgency', ''),
+                'email':           row.get('email_text', ''),
+                'data':            aj,
+                'isThread':        row.get('is_thread', False),
+                'threadCount':     row.get('thread_count', 0),
+                'thread':          row.get('thread_json'),
+                'urgencyOverride': row.get('urgency_override', False),
+            })
+        return jsonify(items)
+    except Exception:
+        return jsonify([])
+
+
+@app.route('/history', methods=['POST'])
+def save_history():
+    if not supabase_db:
+        return jsonify({'id': str(uuid.uuid4())})
+    data = request.get_json() or {}
+    new_id = str(uuid.uuid4())
+    try:
+        supabase_db.table('email_history').insert({
+            'id':           new_id,
+            'session_id':   _uid(),
+            'preview':      (data.get('preview') or '')[:200],
+            'urgency':      data.get('urgency', ''),
+            'email_text':   data.get('email', ''),
+            'analysis_json': data.get('data'),
+            'is_thread':    data.get('isThread', False),
+            'thread_count': data.get('threadCount', 0),
+            'thread_json':  data.get('thread'),
+        }).execute()
+    except Exception:
+        pass
+    return jsonify({'id': new_id})
+
+
+@app.route('/history', methods=['DELETE'])
+def clear_history():
+    if not supabase_db:
+        return jsonify({'ok': True})
+    try:
+        supabase_db.table('email_history').delete().eq('session_id', _uid()).execute()
+    except Exception:
+        pass
+    return jsonify({'ok': True})
+
+
+@app.route('/history/<item_id>', methods=['PATCH'])
+def update_history_item(item_id):
+    if not supabase_db:
+        return jsonify({'ok': True})
+    data = request.get_json() or {}
+    patch = {}
+    if 'urgency' in data:
+        patch['urgency'] = data['urgency']
+    if 'urgencyOverride' in data:
+        patch['urgency_override'] = bool(data['urgencyOverride'])
+    if 'isThread' in data:
+        patch['is_thread'] = bool(data['isThread'])
+    if 'threadCount' in data:
+        patch['thread_count'] = int(data.get('threadCount', 0))
+    if 'thread' in data:
+        patch['thread_json'] = data['thread']
+    if not patch:
+        return jsonify({'ok': True})
+    try:
+        (supabase_db.table('email_history')
+         .update(patch)
+         .eq('id', item_id)
+         .eq('session_id', _uid())
+         .execute())
+    except Exception:
+        pass
+    return jsonify({'ok': True})
+
+
+# ───────────────────────────────────────────────────────────────────────────
 
 def _cap_email_text(text, max_words=3000):
     words = text.split()
