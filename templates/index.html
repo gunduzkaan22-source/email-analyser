@@ -178,7 +178,7 @@
                   Tone
                 </div>
                 <div class="card-h1" id="moodVal">—</div>
-                <div class="card-sub" id="moodDesc"></div>
+                <div class="mood-tone-bars" id="moodToneBars"></div>
               </div>
 
               <!-- Urgency card -->
@@ -303,7 +303,12 @@
               </div>
             </div>
 
-            <div class="t-msgs" id="threadTimeline"></div>
+            <div class="thread-grid">
+              <div>
+                <div class="t-msgs" id="threadTimeline"></div>
+              </div>
+              <aside class="thread-rail" id="threadRail"></aside>
+            </div>
 
             <div class="thread-add-section" id="threadAddSection">
               <div class="thread-add-header">
@@ -439,6 +444,20 @@ async function analyse() {
 /* ── Render results ── */
 function renderResults(data) {
   document.getElementById('moodVal').textContent = data.sender_mood || '—';
+
+  const toneBarsEl = document.getElementById('moodToneBars');
+  const toneScores = data.tone_scores || {};
+  const toneKeys = ['frustration', 'urgency', 'formality', 'warmth'];
+  toneBarsEl.innerHTML = toneKeys
+    .filter(k => toneScores[k] !== undefined)
+    .map(k => {
+      const pct = Math.round((toneScores[k] || 0) * 100);
+      return `<div class="tb-row">
+        <span class="tb-label">${k.charAt(0).toUpperCase() + k.slice(1)}</span>
+        <div class="tb"><div class="tb-fill" style="width:${pct}%"></div></div>
+        <span class="tb-pct">${pct}%</span>
+      </div>`;
+    }).join('');
 
   const pillUrgency = document.getElementById('pillUrgency');
   const urgencyLow  = (data.urgency || '').toLowerCase();
@@ -653,6 +672,68 @@ function renderThreadView() {
     wrap.innerHTML = buildThreadItemHTML(item, idx, escalated, currUrgency);
     timeline.appendChild(wrap);
   });
+
+  renderThreadRail();
+}
+
+function renderThreadRail() {
+  const rail = document.getElementById('threadRail');
+  if (!rail || !currentThread.length) return;
+
+  const urgOrder = { low: 0, medium: 1, high: 2, critical: 3 };
+  const urgLevels = currentThread.map(t => (t.analysis.urgency || 'low').toLowerCase());
+  const first = urgLevels[0], last = urgLevels[urgLevels.length - 1];
+  const delta = (urgOrder[last] || 0) - (urgOrder[first] || 0);
+  const trend  = delta > 0 ? 'escalating' : delta < 0 ? 'cooling' : 'stable';
+  const trendLabel = { escalating: 'Escalating', cooling: 'De-escalating', stable: 'Stable' }[trend];
+  const trendColor = { escalating: 'var(--u-crit)', cooling: 'var(--pos)', stable: 'var(--u-med)' }[trend];
+
+  const sparkBars = urgLevels.map(u => {
+    const cls    = (u === 'critical' || u === 'high') ? 'hot' : u === 'medium' ? 'warn' : 'cool';
+    const height = { low: 20, medium: 45, high: 75, critical: 100 }[u] || 20;
+    return `<div class="b ${cls}" style="height:${height}%"></div>`;
+  }).join('');
+
+  const seen = new Set();
+  const participants = [];
+  currentThread.forEach((t, idx) => {
+    const name = t.analysis.sender || 'Unknown Sender';
+    if (!seen.has(name)) {
+      seen.add(name);
+      participants.push({ name, role: idx === 0 ? 'SENDER' : 'CC' });
+    }
+  });
+  const userName = document.getElementById('senderName').value.trim() || 'You';
+  participants.splice(1, 0, { name: userName, role: 'OWNER' });
+
+  const avatarColors = [
+    'linear-gradient(135deg,oklch(0.62 0.16 25),oklch(0.50 0.18 15))',
+    'linear-gradient(135deg,oklch(0.72 0.12 195),oklch(0.55 0.10 215))',
+    'linear-gradient(135deg,oklch(0.74 0.13 70),oklch(0.62 0.14 50))',
+    'linear-gradient(135deg,oklch(0.65 0.13 320),oklch(0.55 0.14 280))',
+  ];
+  const peopleHTML = participants.map((p, i) => {
+    const initials = p.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    const bg = avatarColors[i % avatarColors.length];
+    return `<div class="rail-person">
+      <span class="av" style="background:${bg}">${escHtml(initials)}</span>
+      <span>${escHtml(p.name)}</span>
+      <span class="role">${p.role}</span>
+    </div>`;
+  }).join('');
+
+  rail.innerHTML = `
+    <div class="rail-section">
+      <div class="rail-label">Thread health</div>
+      <div class="rail-stat" style="color:${trendColor}">${trendLabel}</div>
+      <div class="rail-stat-sub">${currentThread.length} email${currentThread.length !== 1 ? 's' : ''} analysed</div>
+      <div class="rail-spark">${sparkBars}</div>
+    </div>
+    <div class="rail-section">
+      <div class="rail-label">Participants</div>
+      <div class="rail-people">${peopleHTML}</div>
+    </div>
+  `;
 }
 
 function buildThreadItemHTML(item, idx, escalated, urgency) {
