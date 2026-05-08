@@ -8,6 +8,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/style.css" />
+  <script>
+    (function(){var t=localStorage.getItem('maillens.theme')||'light';document.documentElement.setAttribute('data-theme',t)})();
+  </script>
 </head>
 <body>
 
@@ -28,6 +31,14 @@
       </div>
     </div>
     <span class="header-badge">Beta</span>
+    <div class="theme-toggle" role="group" aria-label="Theme">
+      <button class="tt-btn" id="themeLight" onclick="setTheme('light')" title="Light mode" aria-label="Light mode">
+        <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.5M8 13v1.5M2.5 8H1M15 8h-1.5M3.5 3.5l1 1M11.5 11.5l1 1M12.5 3.5l-1 1M4.5 11.5l-1 1"/></svg>
+      </button>
+      <button class="tt-btn" id="themeDark" onclick="setTheme('dark')" title="Dark mode" aria-label="Dark mode">
+        <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 9.5A5.5 5.5 0 1 1 6.5 2.5a4 4 0 0 0 7 7z"/></svg>
+      </button>
+    </div>
   </div>
 </header>
 
@@ -897,6 +908,19 @@ function formatDate(iso) {
   if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
+
+/* ── Theme ── */
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('maillens.theme', theme);
+  document.getElementById('themeLight').classList.toggle('active', theme === 'light');
+  document.getElementById('themeDark').classList.toggle('active', theme === 'dark');
+}
+
+(function initTheme() {
+  const saved = localStorage.getItem('maillens.theme') || 'light';
+  setTheme(saved);
+})();
 
 /* ── Init ── */
 (function initName() {
