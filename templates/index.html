@@ -6,301 +6,382 @@
   <title>MailLens — AI Email Intelligence</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/style.css" />
   <script>
-    (function(){var t=localStorage.getItem('maillens.theme')||'light';document.documentElement.setAttribute('data-theme',t)})();
+    (function(){var t=localStorage.getItem('maillens.theme')||'dark';document.documentElement.setAttribute('data-theme',t)})();
   </script>
 </head>
 <body>
 
 <div class="backdrop" id="backdrop" onclick="closeSidebar()"></div>
 
-<header class="site-header">
-  <div class="header-inner">
-    <button class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Toggle history">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+<div class="app">
+
+  <!-- ── Top nav ── -->
+  <nav class="topnav">
+    <button class="mobile-menu-btn nav-icon-btn" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+      <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h12M2 8h12M2 12h12"/></svg>
     </button>
-    <div class="logo-group">
-      <div class="logo-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-      </div>
-      <div>
-        <div class="logo-name">MailLens</div>
-        <div class="logo-sub">AI-Powered Email Intelligence</div>
-      </div>
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <span>MailLens</span>
     </div>
-    <span class="header-badge">Beta</span>
+    <span class="beta-badge">Beta</span>
+    <div class="topnav-divider"></div>
+    <div class="crumb">
+      <span>Inbox</span>
+      <span class="crumb-sep">/</span>
+      <strong>Analyse</strong>
+    </div>
+    <div class="topnav-spacer"></div>
     <div class="theme-toggle" role="group" aria-label="Theme">
-      <button class="tt-btn" id="themeLight" onclick="setTheme('light')" title="Light mode" aria-label="Light mode">
+      <button class="tt-btn" id="themeLight" onclick="setTheme('light')" title="Light mode">
         <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.5M8 13v1.5M2.5 8H1M15 8h-1.5M3.5 3.5l1 1M11.5 11.5l1 1M12.5 3.5l-1 1M4.5 11.5l-1 1"/></svg>
       </button>
-      <button class="tt-btn" id="themeDark" onclick="setTheme('dark')" title="Dark mode" aria-label="Dark mode">
+      <button class="tt-btn" id="themeDark" onclick="setTheme('dark')" title="Dark mode">
         <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 9.5A5.5 5.5 0 1 1 6.5 2.5a4 4 0 0 0 7 7z"/></svg>
       </button>
     </div>
-  </div>
-</header>
+    <div class="user-chip">
+      <div class="uc-avatar" id="navAvatar">?</div>
+      <span class="uc-name" id="navName">Your name</span>
+    </div>
+  </nav>
 
-<main class="site-main">
-  <div class="container">
-    <div class="layout">
+  <!-- ── Main split ── -->
+  <div class="main">
 
-      <!-- Sidebar -->
-      <aside class="sidebar" id="sidebar">
-        <div class="sidebar-card">
-          <div class="sidebar-head">
-            <span class="sidebar-title">Recent Analyses</span>
-            <button class="clear-history-btn" onclick="clearHistory()">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
-              Clear
-            </button>
-          </div>
-          <div class="filter-bar">
-            <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">
-              All <span class="filter-count" id="cnt-all"></span>
-            </button>
-            <button class="filter-btn" data-filter="high" onclick="setFilter('high')">
-              <span class="filter-dot high"></span>High <span class="filter-count" id="cnt-high"></span>
-            </button>
-            <button class="filter-btn" data-filter="medium" onclick="setFilter('medium')">
-              <span class="filter-dot medium"></span>Med <span class="filter-count" id="cnt-medium"></span>
-            </button>
-            <button class="filter-btn" data-filter="low" onclick="setFilter('low')">
-              <span class="filter-dot low"></span>Low <span class="filter-count" id="cnt-low"></span>
-            </button>
-          </div>
-          <div class="history-list" id="historyList"></div>
-          <div class="history-empty" id="historyEmpty">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-            <p id="historyEmptyMsg">Your analyses will<br>appear here</p>
-          </div>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sb-section">
+        <button class="sb-new" onclick="newAnalysis()">
+          <span class="plus">+</span>
+          <span>New analysis</span>
+          <span class="kbd">⌘N</span>
+        </button>
+      </div>
+
+      <div class="sb-tabs">
+        <button class="sb-tab filter-btn active" data-filter="all" onclick="setFilter('all')">
+          All <span class="count" id="cnt-all"></span>
+        </button>
+        <button class="sb-tab filter-btn" data-filter="high" onclick="setFilter('high')">
+          High <span class="count" id="cnt-high"></span>
+        </button>
+        <button class="sb-tab filter-btn" data-filter="medium" onclick="setFilter('medium')">
+          Med <span class="count" id="cnt-medium"></span>
+        </button>
+        <button class="sb-tab filter-btn" data-filter="low" onclick="setFilter('low')">
+          Low <span class="count" id="cnt-low"></span>
+        </button>
+      </div>
+
+      <div class="sb-list" id="historyList"></div>
+
+      <div class="sb-empty" id="historyEmpty">
+        <svg viewBox="0 0 16 16" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 9.5l1.2-5.5a1.5 1.5 0 0 1 1.5-1.2h5.6a1.5 1.5 0 0 1 1.5 1.2l1.2 5.5"/><path d="M2.5 9.5h3l1 2h3l1-2h3v2.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2.5 12V9.5z"/></svg>
+        <p id="historyEmptyMsg">Your analyses will<br>appear here</p>
+      </div>
+
+      <div class="sb-foot">
+        <div class="sb-foot-stats">
+          <div><strong id="historyCount">0</strong> analyses stored</div>
+          <div class="sb-foot-bar"><div class="sb-foot-bar-fill" id="historyBar"></div></div>
         </div>
-      </aside>
+        <button class="nav-icon-btn" title="Clear history" onclick="clearHistory()">
+          <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h10M6 4V3h4v1M5 4l.5 9h5L11 4"/></svg>
+        </button>
+      </div>
+    </aside>
 
-      <!-- Main column -->
-      <div class="main-col" id="contentArea">
-
-        <!-- Input card -->
-        <div class="card input-card">
-          <div class="card-header">
-            <h1 class="card-title">Analyse your email</h1>
-            <p class="card-desc">Paste any email to get AI-powered insights, action items, and a suggested reply.</p>
-          </div>
-          <div class="name-row">
-            <label class="name-label" for="senderName">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              Sign off as
-            </label>
-            <input type="text" id="senderName" class="name-input" placeholder="Your name" autocomplete="name" />
-          </div>
-          <textarea id="emailInput" placeholder="Paste the email you want to analyse here…"></textarea>
-          <div class="error-box" id="errorBox"></div>
-          <div class="input-actions">
-            <button class="btn-analyse" id="analyseBtn" onclick="analyse()">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-              <span id="btnLabel">Analyse Email</span>
-              <div class="spinner" id="spinner"></div>
+    <!-- Workspace -->
+    <div class="workspace">
+      <div class="ws-head">
+        <div class="ws-title" id="wsTitle">Analyse Email</div>
+        <div class="topnav-spacer"></div>
+        <div class="ws-actions">
+          <div class="seg">
+            <button class="seg-btn active" id="modeAnalyse" onclick="resetAll()">
+              <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="3.5"/><path d="M9.5 9.5l3 3"/></svg>
+              Analyse
             </button>
-            <button class="btn btn-ghost" onclick="resetAll()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
-              Reset
+            <button class="seg-btn" id="modeThread" onclick="startThread()" disabled>
+              <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.5a1.5 1.5 0 0 1 1.5-1.5h7a1.5 1.5 0 0 1 1.5 1.5v5a1.5 1.5 0 0 1-1.5 1.5H8l-3 2.5V11H4.5A1.5 1.5 0 0 1 3 9.5v-5z"/></svg>
+              Thread
             </button>
           </div>
+          <button class="btn-ghost btn-sm" onclick="resetAll()">Reset</button>
         </div>
+      </div>
 
-        <!-- Loading skeleton -->
-        <div class="loading-card" id="loadingCard">
-          <div class="skeleton-lines">
-            <div class="skeleton-line" style="width:55%"></div>
-            <div class="skeleton-line" style="width:82%"></div>
-            <div class="skeleton-line" style="width:66%"></div>
-            <div class="skeleton-line" style="width:40%"></div>
-          </div>
-          <div class="loading-hint">
-            <div class="mini-spin"></div>
-            Analysing your email…
-          </div>
-        </div>
+      <div class="ws-body" id="wsBody">
+        <div class="ws-inner">
 
-        <!-- Results -->
-        <div id="results" class="results">
-
-          <!-- Metrics row -->
-          <div class="metrics-row">
-            <div class="metric-card" id="pillMood">
-              <div class="metric-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+          <!-- Email input panel -->
+          <div class="input-panel" id="inputPanel">
+            <div class="ip-head">
+              <div class="ip-avatar" id="ipAvatar">?</div>
+              <div>
+                <input type="text" id="senderName" class="ip-name-input" placeholder="Your sign-off name" autocomplete="name" />
+                <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-4);margin-top:1px">→ analysing incoming email</div>
               </div>
-              <div class="metric-body">
-                <div class="metric-label">Sender Mood</div>
-                <div class="metric-value" id="moodVal">—</div>
-              </div>
+              <div class="ip-meta" id="ipMeta" style="margin-left:auto"></div>
             </div>
-            <div class="metric-card" id="pillUrgency">
-              <div class="metric-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <textarea id="emailInput" class="ip-textarea" placeholder="Paste the email you want to analyse here…"></textarea>
+            <div class="error-box" id="errorBox"></div>
+            <div class="ip-foot">
+              <div class="meta" id="emailMeta">
+                <span id="wordCountDisplay">0 words</span>
+                <span class="sep"></span>
+                <span id="readTimeDisplay">under 1 min</span>
               </div>
-              <div class="metric-body">
-                <div class="metric-label">Urgency</div>
-                <div class="urgency-value-row">
-                  <div class="metric-value" id="urgencyVal">—</div>
-                  <button class="urgency-override-btn" id="urgencyOverrideBtn" onclick="openUrgencyOverride()" title="Override urgency" aria-label="Override urgency">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              <div class="topnav-spacer"></div>
+              <button class="btn-primary" id="analyseBtn" onclick="analyse()">
+                <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5l1.2 3.3L12.5 7l-3.3 1.2L8 11.5 6.8 8.2 3.5 7l3.3-1.2L8 2.5z"/></svg>
+                <span id="btnLabel">Analyse Email</span>
+                <div class="btn-spinner" id="spinner" style="display:none"></div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Loading skeleton -->
+          <div class="loading-card" id="loadingCard">
+            <div class="skeleton-lines">
+              <div class="skeleton-line" style="width:55%"></div>
+              <div class="skeleton-line" style="width:82%"></div>
+              <div class="skeleton-line" style="width:66%"></div>
+              <div class="skeleton-line" style="width:40%"></div>
+            </div>
+            <div class="loading-hint">
+              <div class="dot-loading"><span></span><span></span><span></span></div>
+              Analysing your email…
+            </div>
+          </div>
+
+          <!-- Results -->
+          <div id="results">
+
+            <div class="results-head">
+              <h2>Analysis</h2>
+              <span class="rdot"></span>
+              <span class="ts" id="analysisTs"></span>
+            </div>
+
+            <div class="grid">
+
+              <!-- Mood card -->
+              <div class="card col-4" id="pillMood">
+                <div class="card-head">
+                  <span class="ico">
+                    <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="5.5"/><path d="M5.5 9.5s.8 1.5 2.5 1.5 2.5-1.5 2.5-1.5"/><circle cx="6" cy="6.5" r="0.5" fill="currentColor" stroke="none"/><circle cx="10" cy="6.5" r="0.5" fill="currentColor" stroke="none"/></svg>
+                  </span>
+                  Tone
+                </div>
+                <div class="card-h1" id="moodVal">—</div>
+                <div class="card-sub" id="moodDesc"></div>
+              </div>
+
+              <!-- Urgency card -->
+              <div class="card col-4" id="pillUrgency">
+                <div class="card-head">
+                  <span class="ico">
+                    <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2L4 9h3l-.5 5L12 7H9l.5-5z"/></svg>
+                  </span>
+                  Urgency
+                  <span class="spacer"></span>
+                  <button class="urgency-override-btn" id="urgencyOverrideBtn" onclick="openUrgencyOverride()" title="Override">
+                    <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2.5a1.5 1.5 0 0 1 2.1 2.1L6 12l-3 1 1-3 7.1-7.5z"/></svg>
                   </button>
+                </div>
+                <div class="card-h1" id="urgencyVal">—</div>
+                <div class="urg-meter">
+                  <div class="urg-step" id="us1"></div>
+                  <div class="urg-step" id="us2"></div>
+                  <div class="urg-step" id="us3"></div>
+                  <div class="urg-step" id="us4"></div>
                 </div>
                 <div class="urgency-pills" id="urgencyPills">
                   <button class="urgency-pill-btn" data-urgency="Low" onclick="setUrgencyOverride('Low')">Low</button>
-                  <button class="urgency-pill-btn" data-urgency="Medium" onclick="setUrgencyOverride('Medium')">Medium</button>
+                  <button class="urgency-pill-btn" data-urgency="Medium" onclick="setUrgencyOverride('Medium')">Med</button>
                   <button class="urgency-pill-btn" data-urgency="High" onclick="setUrgencyOverride('High')">High</button>
                 </div>
                 <div class="urgency-manual-label" id="urgencyManualLabel">Manually set</div>
               </div>
-            </div>
-            <div class="metric-card" id="pillResponseTime">
-              <div class="metric-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              </div>
-              <div class="metric-body">
-                <div class="metric-label">Respond By</div>
-                <div class="metric-value" id="responseTimeVal">—</div>
-              </div>
-            </div>
-          </div>
 
-          <!-- Summary -->
-          <div class="card result-card">
-            <div class="result-card-head">
-              <div class="result-label">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="3" y2="18"/></svg>
-                Summary
+              <!-- Response time card -->
+              <div class="card col-4" id="pillResponseTime">
+                <div class="card-head">
+                  <span class="ico">
+                    <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="5.5"/><path d="M8 5v3l2 1.2"/></svg>
+                  </span>
+                  Respond by
+                </div>
+                <div class="rt-clock">
+                  <span class="rt-num" id="responseTimeVal">—</span>
+                </div>
+              </div>
+
+              <!-- Summary -->
+              <div class="card col-12">
+                <div class="card-head">
+                  <span class="ico">
+                    <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.5h2M3 8h2M3 11.5h2"/><path d="M7 4.5h7M7 8h7M7 11.5h7"/></svg>
+                  </span>
+                  Summary
+                </div>
+                <div class="summary-text" id="summaryVal"></div>
+              </div>
+
+              <!-- Action items -->
+              <div class="card col-12">
+                <div class="card-head">
+                  <span class="ico">
+                    <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.2L6.5 11l6-6.5"/></svg>
+                  </span>
+                  Action Items
+                </div>
+                <ul class="action-list" id="actionList"></ul>
+              </div>
+
+            </div><!-- /grid -->
+
+            <!-- Reply card -->
+            <div class="reply-card">
+              <div class="reply-head">
+                <div class="ico">
+                  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5l-3 3 3 3"/><path d="M3 8h6.5a3.5 3.5 0 0 1 3.5 3.5V13"/></svg>
+                </div>
+                <h3>Suggested Reply</h3>
+                <div class="sub" id="replyToneSub">Professional tone</div>
+                <div class="spacer"></div>
+                <button class="reply-action" id="copyBtn" onclick="copyReply()">
+                  <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="8" height="9" rx="1.5"/><path d="M3 5v8a1.5 1.5 0 0 0 1.5 1.5h7"/></svg>
+                  <span id="copyLabel">Copy</span>
+                </button>
+              </div>
+              <div class="reply-body" id="replyWrap">
+                <div id="replyVal"></div>
+                <div class="reply-regen-loading" id="replyRegenLoading" style="display:none">
+                  <div class="dot-loading"><span></span><span></span><span></span></div>
+                  Regenerating…
+                </div>
+              </div>
+              <div class="tone-bar">
+                <span class="tone-label">Tone</span>
+                <div class="tone-pills">
+                  <button class="tone-pill active" data-tone="Professional" onclick="setTone('Professional')"><span class="swatch"></span>Professional</button>
+                  <button class="tone-pill" data-tone="Friendly" onclick="setTone('Friendly')"><span class="swatch"></span>Friendly</button>
+                  <button class="tone-pill" data-tone="Formal" onclick="setTone('Formal')"><span class="swatch"></span>Formal</button>
+                  <button class="tone-pill" data-tone="Concise" onclick="setTone('Concise')"><span class="swatch"></span>Concise</button>
+                  <button class="tone-pill" data-tone="Empathetic" onclick="setTone('Empathetic')"><span class="swatch"></span>Empathetic</button>
+                </div>
               </div>
             </div>
-            <p class="summary-text" id="summaryVal"></p>
-          </div>
 
-          <!-- Action items -->
-          <div class="card result-card">
-            <div class="result-card-head">
-              <div class="result-label">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                Action Items
-              </div>
-            </div>
-            <ul class="action-list" id="actionList"></ul>
-          </div>
-
-          <!-- Suggested reply -->
-          <div class="card result-card">
-            <div class="result-card-head">
-              <div class="result-label">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                Suggested Reply
-              </div>
-              <button class="copy-btn" id="copyBtn" onclick="copyReply()">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                <span id="copyLabel">Copy</span>
+            <!-- Thread actions bar -->
+            <div class="thread-actions-bar" id="threadActionsBar">
+              <button class="btn-ghost" onclick="startThread()">
+                <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.5a1.5 1.5 0 0 1 1.5-1.5h7a1.5 1.5 0 0 1 1.5 1.5v5a1.5 1.5 0 0 1-1.5 1.5H8l-3 2.5V11H4.5A1.5 1.5 0 0 1 3 9.5v-5z"/></svg>
+                Add Reply to Thread
+              </button>
+              <button class="btn-ghost" onclick="newAnalysis()">
+                <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8a5.5 5.5 0 0 1 9.5-3.8M13.5 8a5.5 5.5 0 0 1-9.5 3.8"/><path d="M11 1.5v3h-3M5 14.5v-3h3"/></svg>
+                New Analysis
               </button>
             </div>
-            <div class="reply-wrap" id="replyWrap">
-              <div class="reply-box" id="replyVal"></div>
-              <div class="reply-regen-loading" id="replyRegenLoading">
-                <div class="mini-spin"></div>
-                Regenerating reply…
+
+          </div><!-- /results -->
+
+          <!-- Thread view -->
+          <div id="threadView">
+            <div class="thread-head">
+              <h1 class="thread-title">Email Thread</h1>
+              <div class="thread-meta">
+                <span class="stars" id="threadCount">0 emails</span>
+                <span>·</span>
+                <button class="btn-ghost btn-sm" onclick="newAnalysis()">New Analysis</button>
               </div>
             </div>
-            <div class="tone-pills">
-              <span class="tone-pill-label">Tone</span>
-              <button class="tone-pill active" data-tone="Professional" onclick="setTone('Professional')">Professional</button>
-              <button class="tone-pill" data-tone="Friendly"   onclick="setTone('Friendly')">Friendly</button>
-              <button class="tone-pill" data-tone="Formal"     onclick="setTone('Formal')">Formal</button>
-              <button class="tone-pill" data-tone="Concise"    onclick="setTone('Concise')">Concise</button>
-              <button class="tone-pill" data-tone="Empathetic" onclick="setTone('Empathetic')">Empathetic</button>
+
+            <div class="t-msgs" id="threadTimeline"></div>
+
+            <div class="thread-add-section" id="threadAddSection">
+              <div class="thread-add-header">
+                <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.5a1.5 1.5 0 0 1 1.5-1.5h7a1.5 1.5 0 0 1 1.5 1.5v5a1.5 1.5 0 0 1-1.5 1.5H8l-3 2.5V11H4.5A1.5 1.5 0 0 1 3 9.5v-5z"/></svg>
+                Paste the next email in this thread
+              </div>
+              <textarea id="threadEmailInput" class="ip-textarea" placeholder="Paste the reply or next email here…" style="min-height:140px;margin-top:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-0)"></textarea>
+              <div class="thread-add-error" id="threadAddError"></div>
+              <div class="tone-bar" style="margin-top:10px;border-radius:8px;border:1px solid var(--border)">
+                <span class="tone-label">Tone</span>
+                <div class="tone-pills">
+                  <button class="tone-pill thread-tone-pill active" data-tone="Professional" onclick="setTone('Professional')"><span class="swatch"></span>Professional</button>
+                  <button class="tone-pill thread-tone-pill" data-tone="Friendly" onclick="setTone('Friendly')"><span class="swatch"></span>Friendly</button>
+                  <button class="tone-pill thread-tone-pill" data-tone="Formal" onclick="setTone('Formal')"><span class="swatch"></span>Formal</button>
+                  <button class="tone-pill thread-tone-pill" data-tone="Concise" onclick="setTone('Concise')"><span class="swatch"></span>Concise</button>
+                  <button class="tone-pill thread-tone-pill" data-tone="Empathetic" onclick="setTone('Empathetic')"><span class="swatch"></span>Empathetic</button>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:flex-end;margin-top:10px">
+                <button class="btn-primary" id="threadAnalyseBtn" onclick="analyseThreadEmail()">
+                  <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5l1.2 3.3L12.5 7l-3.3 1.2L8 11.5 6.8 8.2 3.5 7l3.3-1.2L8 2.5z"/></svg>
+                  <span id="threadBtnLabel">Analyse Reply</span>
+                  <div class="btn-spinner" id="threadSpinner" style="display:none"></div>
+                </button>
+              </div>
             </div>
-          </div>
+          </div><!-- /threadView -->
 
-        </div><!-- /results -->
-
-        <!-- Thread action bar (shown after first analysis) -->
-        <div class="thread-actions-bar" id="threadActionsBar">
-          <button class="btn btn-thread-add" onclick="startThread()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="10" y1="11" x2="14" y2="11"/></svg>
-            Add Reply to Thread
-          </button>
-          <button class="btn btn-ghost" onclick="newAnalysis()">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-            New Analysis
-          </button>
-        </div>
-
-        <!-- Thread view -->
-        <div class="thread-view" id="threadView">
-          <div class="thread-view-header">
-            <div class="thread-view-meta">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-              <span class="thread-view-title">Email Thread</span>
-              <span class="thread-view-count" id="threadCount">1 email</span>
-            </div>
-            <button class="btn btn-ghost btn-sm" onclick="newAnalysis()">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-              New Analysis
-            </button>
-          </div>
-
-          <div class="thread-timeline" id="threadTimeline"></div>
-
-          <div class="thread-add-section" id="threadAddSection">
-            <div class="thread-add-header">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              Paste the next email in this thread
-            </div>
-            <textarea id="threadEmailInput" placeholder="Paste the reply or next email here…"></textarea>
-            <div class="thread-add-error" id="threadAddError"></div>
-            <div class="tone-pills" style="margin-top:0.875rem">
-              <span class="tone-pill-label">Tone</span>
-              <button class="tone-pill thread-tone-pill active" data-tone="Professional" onclick="setTone('Professional')">Professional</button>
-              <button class="tone-pill thread-tone-pill" data-tone="Friendly"   onclick="setTone('Friendly')">Friendly</button>
-              <button class="tone-pill thread-tone-pill" data-tone="Formal"     onclick="setTone('Formal')">Formal</button>
-              <button class="tone-pill thread-tone-pill" data-tone="Concise"    onclick="setTone('Concise')">Concise</button>
-              <button class="tone-pill thread-tone-pill" data-tone="Empathetic" onclick="setTone('Empathetic')">Empathetic</button>
-            </div>
-            <div class="input-actions" style="margin-top:0.75rem">
-              <button class="btn-analyse" id="threadAnalyseBtn" onclick="analyseThreadEmail()">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-                <span id="threadBtnLabel">Analyse Reply</span>
-                <div class="spinner" id="threadSpinner"></div>
-              </button>
-            </div>
-          </div>
-        </div>
-
-      </div><!-- /main-col -->
-    </div><!-- /layout -->
-  </div><!-- /container -->
-</main>
+        </div><!-- /ws-inner -->
+      </div><!-- /ws-body -->
+    </div><!-- /workspace -->
+  </div><!-- /main -->
+</div><!-- /app -->
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
 const HISTORY_KEY = 'maillens_history';
-let activeHistoryId      = null;
-let activeFilter         = 'all';
-let currentEmail         = '';
-let activeTone           = 'Professional';
-let replyCache           = {};
-let urgencyOverrideOpen  = false;
-let currentThread        = []; // [{email, analysis, date}]
-let isThreadMode         = false;
+let activeHistoryId     = null;
+let activeFilter        = 'all';
+let currentEmail        = '';
+let activeTone          = 'Professional';
+let replyCache          = {};
+let urgencyOverrideOpen = false;
+let currentThread       = [];
+let isThreadMode        = false;
+
+/* ── Helpers ── */
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function formatDate(iso) {
+  const d = new Date(iso), diff = Date.now() - d;
+  if (diff < 60000)    return 'just now';
+  if (diff < 3600000)  return Math.floor(diff / 60000) + 'm ago';
+  if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+function wsScroll(top) {
+  const wb = document.getElementById('wsBody');
+  if (wb) wb.scrollTo({ top: top || 0, behavior: 'smooth' });
+}
+
+/* ── Mode UI ── */
+function setModeUI(mode) {
+  document.getElementById('modeAnalyse').classList.toggle('active', mode === 'analyse');
+  document.getElementById('modeThread').classList.toggle('active', mode === 'thread');
+}
 
 /* ── Analyse ── */
 async function analyse() {
-  const email = document.getElementById('emailInput').value.trim();
-  const errorBox  = document.getElementById('errorBox');
-  const btn       = document.getElementById('analyseBtn');
-  const spinner   = document.getElementById('spinner');
-  const btnLabel  = document.getElementById('btnLabel');
-  const results   = document.getElementById('results');
-  const loading   = document.getElementById('loadingCard');
+  const email    = document.getElementById('emailInput').value.trim();
+  const errorBox = document.getElementById('errorBox');
+  const btn      = document.getElementById('analyseBtn');
+  const spinner  = document.getElementById('spinner');
+  const btnLabel = document.getElementById('btnLabel');
+  const results  = document.getElementById('results');
+  const loading  = document.getElementById('loadingCard');
 
   errorBox.classList.remove('visible');
   results.classList.remove('visible');
@@ -324,7 +405,6 @@ async function analyse() {
       body: JSON.stringify({ email, tone: 'Professional', name: document.getElementById('senderName').value.trim() })
     });
     const data = await res.json();
-
     if (!res.ok || data.error) throw new Error(data.error || 'Something went wrong. Please try again.');
 
     currentEmail  = email;
@@ -332,6 +412,7 @@ async function analyse() {
     replyCache    = { Professional: data.suggested_reply || '' };
     currentThread = [{ email, analysis: data, date: new Date().toISOString() }];
     isThreadMode  = false;
+
     renderResults(data);
     activeHistoryId = saveToHistory(email, data);
     activeFilter = 'all';
@@ -340,10 +421,10 @@ async function analyse() {
     results.classList.add('visible');
     document.getElementById('threadActionsBar').classList.add('visible');
     document.getElementById('threadView').classList.remove('visible');
-    setTimeout(() => {
-      results.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 50);
+    document.getElementById('modeThread').disabled = false;
+    setModeUI('analyse');
 
+    setTimeout(() => results.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
   } catch (err) {
     errorBox.textContent = err.message;
     errorBox.classList.add('visible');
@@ -360,8 +441,9 @@ function renderResults(data) {
   document.getElementById('moodVal').textContent = data.sender_mood || '—';
 
   const pillUrgency = document.getElementById('pillUrgency');
+  const urgencyLow  = (data.urgency || '').toLowerCase();
   document.getElementById('urgencyVal').textContent = data.urgency || '—';
-  pillUrgency.className = 'metric-card urgency-' + (data.urgency || '').toLowerCase();
+  pillUrgency.className = 'card col-4 urgency-' + urgencyLow;
 
   document.getElementById('urgencyOverrideBtn').classList.add('visible');
   document.getElementById('urgencyPills').classList.remove('open');
@@ -369,10 +451,18 @@ function renderResults(data) {
   document.querySelectorAll('.urgency-pill-btn').forEach(p => p.classList.remove('selected'));
   urgencyOverrideOpen = false;
 
-  const rt     = data.recommended_response_time || '—';
-  const pillRt = document.getElementById('pillResponseTime');
-  document.getElementById('responseTimeVal').textContent = rt;
-  pillRt.className = 'metric-card' + (rt === 'within 24 hours' ? ' rt-urgent' : '');
+  /* urgency meter steps */
+  const uMap = { low: 1, medium: 2, high: 3, critical: 4 };
+  const uLevel = uMap[urgencyLow] || 0;
+  const stepClasses = ['on-low','on-med','on-high','on-crit'];
+  for (let i = 1; i <= 4; i++) {
+    const step = document.getElementById('us' + i);
+    step.className = 'urg-step' + (i <= uLevel ? ' ' + stepClasses[i - 1] : '');
+  }
+
+  document.getElementById('responseTimeVal').textContent = data.recommended_response_time || '—';
+  document.getElementById('pillResponseTime').className = 'card col-4';
+  document.getElementById('analysisTs').textContent = 'Analysed ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
 
   document.getElementById('summaryVal').textContent = data.summary || '';
 
@@ -380,15 +470,12 @@ function renderResults(data) {
   list.innerHTML = '';
   (data.action_items || []).forEach(item => {
     const li = document.createElement('li');
-    li.innerHTML =
-      '<span class="action-check">' +
-        '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
-      '</span>' +
-      '<span>' + escHtml(item) + '</span>';
+    li.innerHTML = '<span class="action-check"><svg viewBox="0 0 16 16" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.2L6.5 11l6-6.5"/></svg></span><span>' + escHtml(item) + '</span>';
     list.appendChild(li);
   });
 
   document.getElementById('replyVal').textContent = data.suggested_reply || '';
+  document.getElementById('replyToneSub').textContent = 'Professional tone';
 
   const copyBtn = document.getElementById('copyBtn');
   copyBtn.classList.remove('copied');
@@ -407,20 +494,18 @@ function openUrgencyOverride() {
 
 function setUrgencyOverride(urgency) {
   urgencyOverrideOpen = false;
-  const pillCard = document.getElementById('pillUrgency');
   document.getElementById('urgencyVal').textContent = urgency;
-  pillCard.className = 'metric-card urgency-' + urgency.toLowerCase();
+  document.getElementById('pillUrgency').className = 'card col-4 urgency-' + urgency.toLowerCase();
   document.getElementById('urgencyPills').classList.remove('open');
   document.getElementById('urgencyManualLabel').classList.add('visible');
   document.querySelectorAll('.urgency-pill-btn').forEach(p => {
     p.classList.toggle('selected', p.dataset.urgency === urgency);
   });
-
   if (activeHistoryId) {
     const history = getHistory();
     const item = history.find(h => h.id === activeHistoryId);
     if (item) {
-      item.urgency         = urgency;
+      item.urgency = urgency;
       item.urgencyOverride = true;
       localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
       renderHistory();
@@ -436,10 +521,10 @@ async function setTone(tone) {
   document.querySelectorAll('.tone-pill').forEach(p => {
     p.classList.toggle('active', p.dataset.tone === tone);
   });
+  document.getElementById('replyToneSub').textContent = tone + ' tone';
 
   if (isThreadMode) return;
 
-  // Cache hit — instant swap, no network call
   if (replyCache[tone] !== undefined) {
     document.getElementById('replyVal').textContent = replyCache[tone];
     document.getElementById('copyBtn').classList.remove('copied');
@@ -447,16 +532,14 @@ async function setTone(tone) {
     return;
   }
 
-  // Cache miss — stream from API
   document.querySelectorAll('.tone-pill').forEach(p => { p.disabled = true; });
   const replyEl = document.getElementById('replyVal');
   replyEl.textContent = '';
-  replyEl.classList.add('streaming');
+  replyEl.parentElement.classList.add('streaming');
   document.getElementById('copyBtn').classList.remove('copied');
   document.getElementById('copyLabel').textContent = 'Copy';
 
   let fullText = '';
-
   try {
     const name = document.getElementById('senderName').value.trim();
     const res  = await fetch('/regenerate-reply', {
@@ -464,11 +547,7 @@ async function setTone(tone) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: currentEmail, tone, name })
     });
-
-    if (!res.ok) {
-      const errData = await res.json();
-      throw new Error(errData.error || 'Regeneration failed.');
-    }
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Regeneration failed.'); }
 
     const reader  = res.body.getReader();
     const decoder = new TextDecoder();
@@ -477,11 +556,9 @@ async function setTone(tone) {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
-      buffer = lines.pop(); // hold incomplete line for next chunk
-
+      buffer = lines.pop();
       for (const line of lines) {
         if (!line.startsWith('data: ')) continue;
         const payload = line.slice(6).trim();
@@ -493,12 +570,11 @@ async function setTone(tone) {
         replyEl.textContent = fullText;
       }
     }
-
     replyCache[tone] = fullText;
   } catch (err) {
     showToast(err.message);
   } finally {
-    replyEl.classList.remove('streaming');
+    replyEl.parentElement.classList.remove('streaming');
     document.querySelectorAll('.tone-pill').forEach(p => { p.disabled = false; });
   }
 }
@@ -507,27 +583,19 @@ async function setTone(tone) {
 function copyReply() {
   const text = document.getElementById('replyVal').textContent;
   if (!text) return;
-
   const finish = (ok) => {
     const btn = document.getElementById('copyBtn');
     if (ok) {
       btn.classList.add('copied');
       document.getElementById('copyLabel').textContent = 'Copied!';
       showToast('Reply copied to clipboard');
-      setTimeout(() => {
-        btn.classList.remove('copied');
-        document.getElementById('copyLabel').textContent = 'Copy';
-      }, 2000);
+      setTimeout(() => { btn.classList.remove('copied'); document.getElementById('copyLabel').textContent = 'Copy'; }, 2000);
     } else {
       showToast('Copy failed — please select the text manually');
     }
   };
-
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(text).then(() => finish(true)).catch(() => finish(false));
-  } else {
-    finish(false);
-  }
+  if (navigator.clipboard) { navigator.clipboard.writeText(text).then(() => finish(true)).catch(() => finish(false)); }
+  else { finish(false); }
 }
 
 /* ── Reset ── */
@@ -546,29 +614,29 @@ function resetAll() {
   isThreadMode  = false;
   document.getElementById('threadActionsBar').classList.remove('visible');
   document.getElementById('threadView').classList.remove('visible');
+  document.getElementById('modeThread').disabled = true;
+  setModeUI('analyse');
   renderHistory();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  wsScroll(0);
 }
 
-function newAnalysis() {
-  resetAll();
-}
+function newAnalysis() { resetAll(); }
 
 /* ── Thread ── */
 const URGENCY_ORDER = { low: 0, medium: 1, high: 2 };
 
 function startThread() {
+  if (!currentThread.length) return;
   isThreadMode = true;
   document.getElementById('results').classList.remove('visible');
   document.getElementById('threadActionsBar').classList.remove('visible');
   renderThreadView();
   document.getElementById('threadView').classList.add('visible');
+  setModeUI('thread');
   document.querySelectorAll('.thread-tone-pill').forEach(p => {
     p.classList.toggle('active', p.dataset.tone === activeTone);
   });
-  setTimeout(() => {
-    document.getElementById('threadView').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 50);
+  setTimeout(() => document.getElementById('threadView').scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
 }
 
 function renderThreadView() {
@@ -580,62 +648,58 @@ function renderThreadView() {
   currentThread.forEach((item, idx) => {
     const prevUrgency = idx > 0 ? currentThread[idx - 1].analysis.urgency : null;
     const currUrgency = (item.analysis.urgency || 'low').toLowerCase();
-    const escalated   = prevUrgency &&
-      (URGENCY_ORDER[currUrgency] || 0) > (URGENCY_ORDER[prevUrgency.toLowerCase()] || 0);
-
+    const escalated   = prevUrgency && (URGENCY_ORDER[currUrgency] || 0) > (URGENCY_ORDER[prevUrgency.toLowerCase()] || 0);
     const wrap = document.createElement('div');
-    wrap.className = 'thread-item-wrap';
     wrap.innerHTML = buildThreadItemHTML(item, idx, escalated, currUrgency);
     timeline.appendChild(wrap);
   });
 }
 
 function buildThreadItemHTML(item, idx, escalated, urgency) {
-  const a = item.analysis;
-  const sender    = escHtml(a.sender || a.sender_mood && 'Unknown Sender' || 'Unknown Sender');
-  const summary   = escHtml(a.summary || '');
-  const actions   = (a.action_items || []).slice(0, 3);
-  const replyText = escHtml(a.suggested_reply || '');
-  const timeStr   = formatDate(item.date);
+  const a          = item.analysis;
+  const sender     = escHtml(a.sender || 'Unknown Sender');
+  const summary    = escHtml(a.summary || '');
+  const actions    = (a.action_items || []).slice(0, 3);
+  const replyText  = escHtml(a.suggested_reply || '');
+  const timeStr    = formatDate(item.date);
+  const initials   = sender.replace(/[^A-Z]/g, '').slice(0, 2) || sender.slice(0, 2).toUpperCase();
+  const urgColors  = { low: 'var(--u-low)', medium: 'var(--u-med)', high: 'var(--u-high)', critical: 'var(--u-crit)' };
+  const avatarColor = urgColors[urgency] || 'var(--teal-dim)';
 
-  const escalationBadge = escalated
-    ? `<span class="escalation-badge">↑ Escalated</span>`
-    : '';
+  const insightKind = escalated ? 'Shift' : (urgency === 'critical' ? 'Critical' : 'Tone');
+  const insightText = escalated
+    ? 'Urgency escalated from previous message.'
+    : escHtml(a.sender_mood || urgency.charAt(0).toUpperCase() + urgency.slice(1) + ' urgency detected.');
 
   const actionItems = actions.map(ai =>
-    `<li class="thread-action-item"><span class="thread-action-dot"></span>${escHtml(ai)}</li>`
+    `<li style="list-style:none;display:flex;gap:6px;align-items:flex-start;padding:4px 0"><span style="color:var(--teal);flex-shrink:0;margin-top:3px"><svg viewBox="0 0 16 16" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.2L6.5 11l6-6.5"/></svg></span>${escHtml(ai)}</li>`
   ).join('');
 
   return `
-    <div class="thread-item">
-      <div class="thread-item-spine">
-        <div class="thread-dot thread-dot-${urgency}"></div>
-      </div>
-      <div class="thread-item-card">
-        <div class="thread-item-top">
-          <div class="thread-item-sender">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            ${sender}
-          </div>
-          <div class="thread-item-badges">
-            <span class="thread-urgency-badge thread-urgency-${urgency}">${urgency.charAt(0).toUpperCase() + urgency.slice(1)}</span>
-            ${escalationBadge}
-          </div>
-          <span class="thread-item-time">${timeStr}</span>
+    <div class="t-msg">
+      <div class="t-msg-avatar" style="background:${avatarColor}">${escHtml(initials)}</div>
+      <div class="t-msg-card${escalated ? ' highlight' : ''}">
+        <div class="t-msg-head">
+          <span class="t-msg-from">${sender}</span>
+          <span class="t-msg-to">to you</span>
+          <span class="t-msg-time">${timeStr}</span>
         </div>
-        <p class="thread-item-summary">${summary}</p>
-        ${actionItems ? `<ul class="thread-actions-list">${actionItems}</ul>` : ''}
+        <div class="t-msg-body">${summary}${actionItems ? '<ul style="margin:10px 0 0;padding:0">' + actionItems + '</ul>' : ''}</div>
+        <div class="t-insight">
+          <span class="ico"><svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="3.5"/><path d="M9.5 9.5l3 3"/><circle cx="7" cy="7" r="1.2" fill="currentColor" stroke="none"/></svg></span>
+          <strong>${insightKind}</strong>
+          <span>· ${insightText}</span>
+        </div>
         ${replyText ? `
         <button class="thread-reply-toggle" onclick="toggleThreadReply(${idx})" data-open="false">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5l-3 3 3 3"/><path d="M3 8h6.5a3.5 3.5 0 0 1 3.5 3.5V13"/></svg>
           <span>Show suggested reply</span>
-          <svg class="chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          <svg class="chevron" viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
         </button>
         <div class="thread-reply-content" id="thread-reply-${idx}">${replyText}</div>
         ` : ''}
       </div>
     </div>
-    ${idx < currentThread.length - 1 ? '<div class="thread-connector"></div>' : ''}
   `;
 }
 
@@ -650,22 +714,16 @@ function toggleThreadReply(idx) {
 }
 
 async function analyseThreadEmail() {
-  const email    = document.getElementById('threadEmailInput').value.trim();
-  const errorEl  = document.getElementById('threadAddError');
-  const btn      = document.getElementById('threadAnalyseBtn');
-  const spinner  = document.getElementById('threadSpinner');
-  const label    = document.getElementById('threadBtnLabel');
+  const email   = document.getElementById('threadEmailInput').value.trim();
+  const errorEl = document.getElementById('threadAddError');
+  const btn     = document.getElementById('threadAnalyseBtn');
+  const spinner = document.getElementById('threadSpinner');
+  const label   = document.getElementById('threadBtnLabel');
 
   errorEl.textContent = '';
-  errorEl.classList.remove('visible');
+  if (!email) { errorEl.textContent = 'Please paste an email before analysing.'; return; }
 
-  if (!email) {
-    errorEl.textContent = 'Please paste an email before analysing.';
-    errorEl.classList.add('visible');
-    return;
-  }
-
-  btn.disabled   = true;
+  btn.disabled = true;
   label.textContent = 'Analysing…';
   spinner.style.display = 'block';
 
@@ -688,14 +746,9 @@ async function analyseThreadEmail() {
     renderThreadView();
     saveThreadToHistory();
     renderHistory();
-
-    setTimeout(() => {
-      document.getElementById('threadAddSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 80);
-
+    setTimeout(() => document.getElementById('threadAddSection').scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
   } catch (err) {
     errorEl.textContent = err.message;
-    errorEl.classList.add('visible');
   } finally {
     btn.disabled = false;
     label.textContent = 'Analyse Reply';
@@ -710,62 +763,43 @@ function saveThreadToHistory() {
            (URGENCY_ORDER[(best || 'low').toLowerCase()] || 0)
       ? t.analysis.urgency : best;
   }, 'low');
-
   const firstEmail = currentThread[0]?.email || '';
   const preview    = firstEmail.split('\n')[0].trim().slice(0, 70);
 
   if (activeHistoryId) {
-    const item = history.find(h => h.id === activeHistoryId);
+    const history2 = getHistory();
+    const item = history2.find(h => h.id === activeHistoryId);
     if (item) {
-      item.isThread    = true;
-      item.threadCount = currentThread.length;
-      item.urgency     = topUrgency;
-      item.thread      = currentThread.map(t => ({ email: t.email, analysis: t.analysis, date: t.date }));
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+      item.isThread = true; item.threadCount = currentThread.length; item.urgency = topUrgency;
+      item.thread   = currentThread.map(t => ({ email: t.email, analysis: t.analysis, date: t.date }));
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history2));
       return;
     }
   }
 
   const id = Date.now().toString();
-  history.unshift({
-    id,
-    date: new Date().toISOString(),
-    preview,
-    urgency: topUrgency,
-    isThread: true,
-    threadCount: currentThread.length,
-    thread: currentThread.map(t => ({ email: t.email, analysis: t.analysis, date: t.date }))
-  });
+  history.unshift({ id, date: new Date().toISOString(), preview, urgency: topUrgency, isThread: true, threadCount: currentThread.length, thread: currentThread.map(t => ({ email: t.email, analysis: t.analysis, date: t.date })) });
   activeHistoryId = id;
   localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 50)));
 }
 
 /* ── History ── */
 function getHistory() {
-  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); }
-  catch { return []; }
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
 }
 
 function saveToHistory(email, data) {
   const history = getHistory();
   const id = Date.now().toString();
-  const firstLine = email.split('\n')[0].trim();
-  history.unshift({
-    id,
-    date: new Date().toISOString(),
-    preview: (firstLine || email).slice(0, 70),
-    urgency: data.urgency || '',
-    email,
-    data
-  });
+  history.unshift({ id, date: new Date().toISOString(), preview: (email.split('\n')[0].trim() || email).slice(0, 70), urgency: data.urgency || '', email, data });
   localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 50)));
   return id;
 }
 
 function renderHistory() {
   const history = getHistory();
-  const list    = document.getElementById('historyList');
-  const empty   = document.getElementById('historyEmpty');
+  const list  = document.getElementById('historyList');
+  const empty = document.getElementById('historyEmpty');
 
   const counts = { all: history.length, high: 0, medium: 0, low: 0 };
   history.forEach(item => {
@@ -784,28 +818,29 @@ function renderHistory() {
     ? history
     : history.filter(h => (h.urgency || '').toLowerCase() === activeFilter);
 
+  const historyCount = document.getElementById('historyCount');
+  if (historyCount) historyCount.textContent = history.length;
+  const historyBar = document.getElementById('historyBar');
+  if (historyBar) historyBar.style.width = Math.min(100, (history.length / 50) * 100) + '%';
+
   if (filtered.length === 0) {
     list.innerHTML = '';
     const msg = document.getElementById('historyEmptyMsg');
-    msg.innerHTML = activeFilter === 'all'
-      ? 'Your analyses will<br>appear here'
-      : `No <strong style="color:var(--navy-500)">${activeFilter}</strong> urgency<br>analyses yet`;
+    if (msg) msg.innerHTML = activeFilter === 'all' ? 'Your analyses will<br>appear here' : 'No <strong>' + activeFilter + '</strong><br>analyses yet';
     empty.style.display = 'flex';
     return;
   }
 
   empty.style.display = 'none';
-  list.innerHTML = filtered.map(item => `
-    <div class="history-item${item.id === activeHistoryId ? ' active' : ''}" onclick="loadHistoryItem('${escHtml(item.id)}')">
-      <div class="history-preview">
-        ${item.isThread ? `<span class="history-thread-icon" title="${item.threadCount} emails"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>${item.threadCount}</span>` : ''}${escHtml(item.preview || '(empty)')}
-      </div>
-      <div class="history-meta">
-        <span class="history-time">${formatDate(item.date)}</span>
-        ${item.urgency ? `<span class="history-badge ${item.urgency.toLowerCase()}">${escHtml(item.urgency)}</span>` : ''}
-      </div>
-    </div>
-  `).join('');
+  list.innerHTML = filtered.map(item => {
+    const urgLow = (item.urgency || '').toLowerCase();
+    const badge  = item.urgency ? `<span class="history-badge ${urgLow}">${escHtml(item.urgency)}</span>` : '';
+    const thread = item.isThread ? `<span class="history-thread-icon">${item.threadCount}</span>` : '';
+    return `<div class="history-item${item.id === activeHistoryId ? ' active' : ''}" onclick="loadHistoryItem('${escHtml(item.id)}')">
+      <div class="history-preview">${thread}${escHtml(item.preview || '(empty)')}</div>
+      <div class="history-meta"><span class="history-time">${formatDate(item.date)}</span>${badge}</div>
+    </div>`;
+  }).join('');
 }
 
 function setFilter(filter) {
@@ -819,7 +854,6 @@ function loadHistoryItem(id) {
 
   activeHistoryId = id;
   activeTone      = 'Professional';
-
   document.getElementById('threadActionsBar').classList.remove('visible');
   document.getElementById('threadView').classList.remove('visible');
 
@@ -827,22 +861,20 @@ function loadHistoryItem(id) {
     currentThread = item.thread.map(t => ({ email: t.email, analysis: t.analysis, date: t.date }));
     isThreadMode  = true;
     currentEmail  = currentThread[0]?.email || '';
-
     document.getElementById('results').classList.remove('visible');
     renderThreadView();
     document.getElementById('threadView').classList.add('visible');
-
+    document.getElementById('modeThread').disabled = false;
+    setModeUI('thread');
   } else {
-    currentThread = item.email
-      ? [{ email: item.email, analysis: item.data, date: item.date }]
-      : [];
+    currentThread = item.email ? [{ email: item.email, analysis: item.data, date: item.date }] : [];
     isThreadMode  = false;
     currentEmail  = item.email || '';
     renderResults(item.data);
 
     if (item.urgencyOverride) {
       document.getElementById('urgencyVal').textContent = item.urgency;
-      document.getElementById('pillUrgency').className  = 'metric-card urgency-' + (item.urgency || '').toLowerCase();
+      document.getElementById('pillUrgency').className  = 'card col-4 urgency-' + (item.urgency || '').toLowerCase();
       document.getElementById('urgencyManualLabel').classList.add('visible');
       document.querySelectorAll('.urgency-pill-btn').forEach(p => {
         p.classList.toggle('selected', p.dataset.urgency === item.urgency);
@@ -854,11 +886,13 @@ function loadHistoryItem(id) {
     void results.offsetWidth;
     results.classList.add('visible');
     document.getElementById('threadActionsBar').classList.add('visible');
+    document.getElementById('modeThread').disabled = false;
+    setModeUI('analyse');
   }
 
   renderHistory();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-  if (window.innerWidth < 1024) closeSidebar();
+  wsScroll(0);
+  if (window.innerWidth < 700) closeSidebar();
 }
 
 function clearHistory() {
@@ -875,7 +909,6 @@ function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
   document.getElementById('backdrop').classList.toggle('open');
 }
-
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('backdrop').classList.remove('open');
@@ -891,24 +924,6 @@ function showToast(msg) {
   toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
 }
 
-/* ── Helpers ── */
-function escHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-function formatDate(iso) {
-  const d    = new Date(iso);
-  const diff = Date.now() - d;
-  if (diff < 60000)    return 'just now';
-  if (diff < 3600000)  return Math.floor(diff / 60000) + 'm ago';
-  if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
-
 /* ── Theme ── */
 function setTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
@@ -917,17 +932,42 @@ function setTheme(theme) {
   document.getElementById('themeDark').classList.toggle('active', theme === 'dark');
 }
 
+/* ── Init ── */
 (function initTheme() {
-  const saved = localStorage.getItem('maillens.theme') || 'light';
+  const saved = localStorage.getItem('maillens.theme') || 'dark';
   setTheme(saved);
 })();
 
-/* ── Init ── */
 (function initName() {
   const input = document.getElementById('senderName');
-  input.value = localStorage.getItem('maillens_name') || '';
+  const nav   = document.getElementById('navName');
+  const avatar = document.getElementById('navAvatar');
+  const ipAvatar = document.getElementById('ipAvatar');
+
+  function updateName(val) {
+    const name = val.trim();
+    if (nav)    nav.textContent   = name || 'Your name';
+    if (avatar) avatar.textContent = name ? name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : '?';
+    if (ipAvatar) ipAvatar.textContent = name ? name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : '?';
+  }
+
+  const saved = localStorage.getItem('maillens_name') || '';
+  input.value = saved;
+  updateName(saved);
   input.addEventListener('input', () => {
     localStorage.setItem('maillens_name', input.value.trim());
+    updateName(input.value);
+  });
+})();
+
+(function initWordCount() {
+  const ta = document.getElementById('emailInput');
+  const wc = document.getElementById('wordCountDisplay');
+  const rt = document.getElementById('readTimeDisplay');
+  ta.addEventListener('input', () => {
+    const words = ta.value.trim() ? ta.value.trim().split(/\s+/).length : 0;
+    wc.textContent = words + ' word' + (words !== 1 ? 's' : '');
+    rt.textContent = words < 200 ? 'under 1 min' : Math.ceil(words / 200) + ' min read';
   });
 })();
 
