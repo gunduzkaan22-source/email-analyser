@@ -405,6 +405,20 @@ let lastAnalysisResult  = null;
 let searchQuery         = '';
 let doneActions         = new Set();
 
+/* ── Avatar hues (match design handoff HUES palette) ── */
+const AVATAR_HUES = [
+  'linear-gradient(135deg, oklch(0.62 0.16 25),  oklch(0.50 0.18 15))',  // rose
+  'linear-gradient(135deg, oklch(0.65 0.13 320), oklch(0.55 0.14 280))', // violet
+  'linear-gradient(135deg, oklch(0.74 0.13 70),  oklch(0.62 0.14 50))',  // amber
+  'linear-gradient(135deg, oklch(0.72 0.12 195), oklch(0.55 0.10 215))', // cyan
+  'linear-gradient(135deg, oklch(0.70 0.13 155), oklch(0.55 0.13 175))', // green
+];
+function senderHue(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffff;
+  return AVATAR_HUES[h % AVATAR_HUES.length];
+}
+
 /* ── Helpers ── */
 function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1038,7 +1052,9 @@ function renderHistory() {
   const counts = { all: history.length, high: 0, medium: 0, low: 0 };
   history.forEach(item => {
     const u = (item.urgency || '').toLowerCase();
-    if (u in counts) counts[u]++;
+    if (u === 'high' || u === 'critical') counts.high++;
+    else if (u === 'medium') counts.medium++;
+    else if (u === 'low') counts.low++;
   });
 
   document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -1050,7 +1066,11 @@ function renderHistory() {
 
   let filtered = activeFilter === 'all'
     ? history
-    : history.filter(h => (h.urgency || '').toLowerCase() === activeFilter);
+    : history.filter(h => {
+        const u = (h.urgency || '').toLowerCase();
+        if (activeFilter === 'high') return u === 'high' || u === 'critical';
+        return u === activeFilter;
+      });
 
   if (searchQuery) {
     const q = searchQuery;
@@ -1089,22 +1109,17 @@ function renderHistory() {
   list.innerHTML = '';
   const frag = document.createDocumentFragment();
   const badgeMap = { low: 'low', medium: 'med', high: 'high', critical: 'crit' };
-  const avatarGradients = {
-    high:     'linear-gradient(135deg, oklch(0.72 0.16 25),  oklch(0.58 0.18 12))',
-    medium:   'linear-gradient(135deg, oklch(0.78 0.14 65),  oklch(0.62 0.16 50))',
-    low:      'linear-gradient(135deg, oklch(0.72 0.12 195), oklch(0.55 0.10 215))',
-    critical: 'linear-gradient(135deg, oklch(0.68 0.20 20),  oklch(0.52 0.22 10))',
-  };
 
   filtered.forEach(item => {
-    const urgLow  = (item.urgency || '').toLowerCase();
-    const preview = item.preview || '(empty)';
-    const words   = preview.replace(/[^a-zA-Z\s]/g, '').trim().split(/\s+/).filter(Boolean);
-    const initials = words.length >= 2
-      ? (words[0][0] + words[1][0]).toUpperCase()
-      : (preview.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase() || '?');
-    const avatarBg  = avatarGradients[urgLow] || 'linear-gradient(135deg, var(--bg-3), var(--bg-2))';
-    const snippet   = (item.data && item.data.summary) ? item.data.summary : preview;
+    const urgLow    = (item.urgency || '').toLowerCase();
+    const preview   = item.preview || '(empty)';
+    const senderName = (item.data && item.data.sender) ? item.data.sender : '';
+    const nameWords  = senderName.split(/\s+/).filter(Boolean);
+    const initials   = nameWords.length >= 2
+      ? (nameWords[0][0] + nameWords[nameWords.length - 1][0]).toUpperCase()
+      : (senderName.slice(0, 2).toUpperCase() || preview.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase() || '?');
+    const avatarBg   = senderHue(senderName || preview);
+    const snippet    = (item.data && item.data.summary) ? item.data.summary : '';
 
     const div = document.createElement('div');
     div.className = 'sb-item' + (item.id === activeHistoryId ? ' active' : '');
@@ -1114,6 +1129,7 @@ function renderHistory() {
     const avatar = document.createElement('div');
     avatar.className = 'sb-avatar';
     avatar.style.background = avatarBg;
+    avatar.style.color = 'white';
     avatar.textContent = initials;
 
     /* Body */
@@ -1130,12 +1146,16 @@ function renderHistory() {
       icon.textContent = item.threadCount;
       from.appendChild(icon);
     }
-    from.appendChild(document.createTextNode(preview));
+    from.appendChild(document.createTextNode(senderName || preview));
     const time = document.createElement('div');
     time.className = 'sb-time';
     time.textContent = formatDate(item.date);
     row1.appendChild(from);
     row1.appendChild(time);
+
+    const subj = document.createElement('div');
+    subj.className = 'sb-subj';
+    subj.textContent = preview;
 
     const snip = document.createElement('div');
     snip.className = 'sb-snip';
@@ -1155,6 +1175,7 @@ function renderHistory() {
     }
 
     body.appendChild(row1);
+    body.appendChild(subj);
     body.appendChild(snip);
     body.appendChild(meta);
 
