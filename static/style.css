@@ -126,6 +126,9 @@ textarea, input { font-family: inherit; }
 .brand-mark::before { content: ''; position: absolute; width: 4px; height: 1.5px; background: var(--bg-0); border-radius: 1px; bottom: 5.5px; right: 4.5px; transform: rotate(45deg); }
 .beta-badge { font-family: var(--font-mono); font-size: 10px; font-weight: 500; padding: 2px 6px; border-radius: 4px; background: var(--teal-bg); color: var(--teal); border: 1px solid oklch(0.55 0.090 195 / 0.4); letter-spacing: 0.04em; text-transform: uppercase; }
 .topnav-divider { width: 1px; height: 18px; background: var(--border); margin: 0 4px; }
+.nav-search { width: 320px; display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--bg-1); border: 1px solid var(--border); border-radius: 8px; color: var(--text-3); font-size: 13px; transition: all 0.12s; cursor: text; }
+.nav-search:hover { border-color: var(--border-strong); }
+.nav-search .kbd { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--text-4); padding: 1px 5px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-0); }
 .crumb { display: flex; align-items: center; gap: 8px; color: var(--text-3); font-size: 13px; }
 .crumb strong { color: var(--text-2); font-weight: 500; }
 .crumb-sep { color: var(--text-4); }
@@ -256,13 +259,16 @@ textarea, input { font-family: inherit; }
 
 /* Actions */
 .action-list { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
-.action { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 8px; background: var(--bg-2); border: 1px solid var(--border-soft); transition: border-color 0.12s; cursor: pointer; user-select: none; }
+.action { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 8px; background: var(--bg-2); border: 1px solid var(--border-soft); transition: border-color 0.12s; cursor: pointer; user-select: none; }
 .action:hover { border-color: var(--border-strong); }
 .action.done { opacity: 0.55; }
 .action.done .action-text { text-decoration: line-through; color: var(--text-3); }
 .action-check { width: 16px; height: 16px; border-radius: 5px; border: 1.5px solid var(--border-strong); display: grid; place-items: center; flex-shrink: 0; background: transparent; transition: all 0.12s; }
 .action.done .action-check { background: var(--teal); border-color: var(--teal); color: var(--bg-0); }
 .action-text { font-size: 13.5px; color: var(--text); letter-spacing: -0.005em; }
+.action-meta { display: flex; align-items: center; gap: 6px; }
+.action-due { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-3); padding: 2px 6px; background: var(--bg-1); border: 1px solid var(--border-soft); border-radius: 4px; }
+.action-due.overdue { color: var(--u-high); border-color: oklch(0.74 0.155 45 / 0.4); }
 
 /* Reply card */
 .reply-card { background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-top: 14px; }
@@ -284,6 +290,7 @@ textarea, input { font-family: inherit; }
 .tone-pill.active { background: var(--teal-bg); color: var(--teal); border-color: oklch(0.55 0.090 195 / 0.5); box-shadow: 0 0 0 3px var(--teal-glow); }
 .tone-pill .swatch { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .tone-pill:disabled { opacity: 0.5; cursor: not-allowed; }
+.tone-foot-actions { display: flex; gap: 6px; margin-left: auto; flex-shrink: 0; }
 
 /* Thread timeline */
 .thread-head { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
