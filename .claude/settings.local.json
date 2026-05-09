@@ -37,7 +37,12 @@
       "Bash(git remote *)",
       "Bash(git ls-remote *)",
       "Bash(git fetch *)",
-      "Bash(dir C:\\\\Users\\\\gundu\\\\claude-learning\\\\email-analyser *)"
+      "Bash(dir C:\\\\Users\\\\gundu\\\\claude-learning\\\\email-analyser *)",
+      "Bash(netlify sites:list)",
+      "Bash(railway status *)",
+      "Bash(railway whoami *)",
+      "PowerShell(railway *)",
+      "Bash(dir C:\\\\Users\\\\gundu\\\\claude-learning\\\\email-analyser\\\\project *)"
     ]
   }
 }

@@ -448,16 +448,28 @@ function renderResults(data) {
   const toneBarsEl = document.getElementById('moodToneBars');
   const toneScores = data.tone_scores || {};
   const toneKeys = ['frustration', 'urgency', 'formality', 'warmth'];
-  toneBarsEl.innerHTML = toneKeys
-    .filter(k => toneScores[k] !== undefined)
-    .map(k => {
-      const pct = Math.round((toneScores[k] || 0) * 100);
-      return `<div class="tb-row">
-        <span class="tb-label">${k.charAt(0).toUpperCase() + k.slice(1)}</span>
-        <div class="tb"><div class="tb-fill" style="width:${pct}%"></div></div>
-        <span class="tb-pct">${pct}%</span>
-      </div>`;
-    }).join('');
+  toneBarsEl.innerHTML = '';
+  toneKeys.filter(k => toneScores[k] !== undefined).forEach(k => {
+    const pct = Math.round((toneScores[k] || 0) * 100);
+    const row = document.createElement('div');
+    row.className = 'tb-row';
+    const lbl = document.createElement('span');
+    lbl.className = 'tb-label';
+    lbl.textContent = k.charAt(0).toUpperCase() + k.slice(1);
+    const bar = document.createElement('div');
+    bar.className = 'tb';
+    const fill = document.createElement('div');
+    fill.className = 'tb-fill';
+    fill.style.width = pct + '%';
+    bar.appendChild(fill);
+    const pctSpan = document.createElement('span');
+    pctSpan.className = 'tb-pct';
+    pctSpan.textContent = pct + '%';
+    row.appendChild(lbl);
+    row.appendChild(bar);
+    row.appendChild(pctSpan);
+    toneBarsEl.appendChild(row);
+  });
 
   const pillUrgency = document.getElementById('pillUrgency');
   const urgencyLow  = (data.urgency || '').toLowerCase();
@@ -489,7 +501,13 @@ function renderResults(data) {
   list.innerHTML = '';
   (data.action_items || []).forEach(item => {
     const li = document.createElement('li');
-    li.innerHTML = '<span class="action-check"><svg viewBox="0 0 16 16" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.2L6.5 11l6-6.5"/></svg></span><span>' + escHtml(item) + '</span>';
+    const check = document.createElement('span');
+    check.className = 'action-check';
+    check.innerHTML = '<svg viewBox="0 0 16 16" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.2L6.5 11l6-6.5"/></svg>';
+    const text = document.createElement('span');
+    text.textContent = item;
+    li.appendChild(check);
+    li.appendChild(text);
     list.appendChild(li);
   });
 
@@ -775,7 +793,7 @@ function buildThreadItemHTML(item, idx, escalated, urgency) {
           <span>· ${insightText}</span>
         </div>
         ${replyText ? `
-        <button class="thread-reply-toggle" onclick="toggleThreadReply(${idx})" data-open="false">
+        <button class="thread-reply-toggle" data-idx="${idx}" data-open="false">
           <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5l-3 3 3 3"/><path d="M3 8h6.5a3.5 3.5 0 0 1 3.5 3.5V13"/></svg>
           <span>Show suggested reply</span>
           <svg class="chevron" viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
@@ -941,21 +959,62 @@ function renderHistory() {
   if (filtered.length === 0) {
     list.innerHTML = '';
     const msg = document.getElementById('historyEmptyMsg');
-    if (msg) msg.innerHTML = activeFilter === 'all' ? 'Your analyses will<br>appear here' : 'No <strong>' + activeFilter + '</strong><br>analyses yet';
+    if (msg) {
+      msg.innerHTML = '';
+      if (activeFilter === 'all') {
+        msg.appendChild(document.createTextNode('Your analyses will'));
+        msg.appendChild(document.createElement('br'));
+        msg.appendChild(document.createTextNode('appear here'));
+      } else {
+        msg.appendChild(document.createTextNode('No '));
+        const strong = document.createElement('strong');
+        strong.textContent = activeFilter;
+        msg.appendChild(strong);
+        msg.appendChild(document.createElement('br'));
+        msg.appendChild(document.createTextNode('analyses yet'));
+      }
+    }
     empty.style.display = 'flex';
     return;
   }
 
   empty.style.display = 'none';
-  list.innerHTML = filtered.map(item => {
+  list.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  filtered.forEach(item => {
     const urgLow = (item.urgency || '').toLowerCase();
-    const badge  = item.urgency ? `<span class="history-badge ${urgLow}">${escHtml(item.urgency)}</span>` : '';
-    const thread = item.isThread ? `<span class="history-thread-icon">${item.threadCount}</span>` : '';
-    return `<div class="history-item${item.id === activeHistoryId ? ' active' : ''}" onclick="loadHistoryItem('${escHtml(item.id)}')">
-      <div class="history-preview">${thread}${escHtml(item.preview || '(empty)')}</div>
-      <div class="history-meta"><span class="history-time">${formatDate(item.date)}</span>${badge}</div>
-    </div>`;
-  }).join('');
+    const div = document.createElement('div');
+    div.className = 'history-item' + (item.id === activeHistoryId ? ' active' : '');
+    div.dataset.id = item.id;
+
+    const previewEl = document.createElement('div');
+    previewEl.className = 'history-preview';
+    if (item.isThread) {
+      const icon = document.createElement('span');
+      icon.className = 'history-thread-icon';
+      icon.textContent = item.threadCount;
+      previewEl.appendChild(icon);
+    }
+    previewEl.appendChild(document.createTextNode(item.preview || '(empty)'));
+
+    const metaEl = document.createElement('div');
+    metaEl.className = 'history-meta';
+    const timeEl = document.createElement('span');
+    timeEl.className = 'history-time';
+    timeEl.textContent = formatDate(item.date);
+    metaEl.appendChild(timeEl);
+    if (item.urgency) {
+      const badge = document.createElement('span');
+      badge.className = 'history-badge ' + urgLow;
+      badge.textContent = item.urgency;
+      metaEl.appendChild(badge);
+    }
+
+    div.appendChild(previewEl);
+    div.appendChild(metaEl);
+    frag.appendChild(div);
+  });
+  list.appendChild(frag);
 }
 
 function setFilter(filter) {
@@ -1086,6 +1145,16 @@ function setTheme(theme) {
     rt.textContent = words < 200 ? 'under 1 min' : Math.ceil(words / 200) + ' min read';
   });
 })();
+
+document.getElementById('historyList').addEventListener('click', e => {
+  const item = e.target.closest('.history-item');
+  if (item && item.dataset.id) loadHistoryItem(item.dataset.id);
+});
+
+document.getElementById('threadTimeline').addEventListener('click', e => {
+  const btn = e.target.closest('.thread-reply-toggle');
+  if (btn) toggleThreadReply(parseInt(btn.dataset.idx, 10));
+});
 
 loadHistory();
 </script>

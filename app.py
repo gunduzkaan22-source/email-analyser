@@ -26,10 +26,10 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = os.environ.get('FLASK_ENV') == 'production'
 
 _SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
-_SUPABASE_KEY = os.environ.get('SUPABASE_ANON_KEY', '')
+_SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_KEY', '')
 supabase_db = (
-    _supabase_create_client(_SUPABASE_URL, _SUPABASE_KEY)
-    if (_supabase_create_client and _SUPABASE_URL and _SUPABASE_KEY)
+    _supabase_create_client(_SUPABASE_URL, _SUPABASE_SERVICE_KEY)
+    if (_supabase_create_client and _SUPABASE_URL and _SUPABASE_SERVICE_KEY)
     else None
 )
 
