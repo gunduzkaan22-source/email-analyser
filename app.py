@@ -3,8 +3,12 @@ import json
 import uuid
 import re
 import datetime
+from functools import wraps
 import anthropic
-from flask import Flask, render_template, request, jsonify, Response, stream_with_context, session
+from flask import (
+    Flask, render_template, render_template_string, request, jsonify,
+    Response, stream_with_context, session, redirect,
+)
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
@@ -22,16 +26,30 @@ if not _secret_key:
 app.secret_key = _secret_key
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-# Set SESSION_COOKIE_SECURE=True in production (requires HTTPS)
 app.config['SESSION_COOKIE_SECURE'] = os.environ.get('FLASK_ENV') == 'production'
+app.permanent_session_lifetime = datetime.timedelta(days=30)
 
 _SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
 _SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_KEY', '')
+_SUPABASE_ANON_KEY = os.environ.get('SUPABASE_ANON_KEY', '')
+
+# Service-role client: DB reads/writes and auth admin operations
 supabase_db = (
     _supabase_create_client(_SUPABASE_URL, _SUPABASE_SERVICE_KEY)
     if (_supabase_create_client and _SUPABASE_URL and _SUPABASE_SERVICE_KEY)
     else None
 )
+
+
+def _auth_client():
+    """Return a fresh anon-key Supabase client for user-facing auth calls.
+
+    A new instance per call avoids shared session-state across concurrent requests.
+    """
+    if not (_supabase_create_client and _SUPABASE_URL and _SUPABASE_ANON_KEY):
+        return None
+    return _supabase_create_client(_SUPABASE_URL, _SUPABASE_ANON_KEY)
+
 
 limiter = Limiter(
     get_remote_address,
@@ -41,6 +59,26 @@ limiter = Limiter(
 
 _anthropic = anthropic.Anthropic()
 
+
+# ── Auth helpers ─────────────────────────────────────────────────────────────
+
+def auth_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'user_id' not in session:
+            # API / streaming callers get 401 JSON; page loads get a redirect
+            if request.is_json or request.headers.get('Accept', '').startswith('text/event-stream'):
+                return jsonify({'error': 'Authentication required', 'redirect': '/login'}), 401
+            return redirect('/login')
+        return f(*args, **kwargs)
+    return decorated
+
+
+def _uid():
+    return session.get('user_id', '')
+
+
+# ── Error / security handlers ─────────────────────────────────────────────────
 
 @app.errorhandler(429)
 def ratelimit_handler(e):
@@ -53,7 +91,6 @@ def set_security_headers(response):
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
-    # unsafe-inline required by existing inline scripts/styles; tighten by migrating to external files later
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline'; "
@@ -67,43 +104,166 @@ def set_security_headers(response):
     return response
 
 
-@app.before_request
-def ensure_session():
-    if 'uid' not in session:
-        session['uid'] = str(uuid.uuid4())
+# ── Auth routes ───────────────────────────────────────────────────────────────
+
+@app.route('/login', methods=['GET'])
+def login():
+    if 'user_id' in session:
+        return redirect('/')
+    return render_template('login.html')
 
 
-def _uid():
-    return session.get('uid', '')
+@app.route('/login', methods=['POST'])
+@limiter.limit("10 per hour")
+def login_post():
+    data = request.get_json() or {}
+    email = str(data.get('email', '')).strip().lower()
 
-TONE_GUIDES = {
-    "Professional": "clear, respectful, and business-appropriate — warm but not casual, direct without being blunt",
-    "Friendly":     "warm, personable, and upbeat — like writing to a colleague you know well; contractions and light warmth are fine",
-    "Formal":       "polished and structured — full sentences, no contractions, measured language suited to senior stakeholders or official correspondence",
-    "Concise":      "brief and to the point — every sentence earns its place; cut pleasantries to a minimum without being abrupt",
-    "Empathetic":   "understanding and supportive — acknowledge feelings or pressure the sender may be under before moving to practicalities",
-}
+    if not email or '@' not in email:
+        return jsonify({'error': 'Please enter a valid email address.'}), 400
 
-REPLY_INSTRUCTIONS = (
-    "Structure it with a natural greeting, a body that directly addresses the specific "
-    "points and questions raised in the email (reference them concretely — no vague "
-    "acknowledgements), and a clear sign-off. "
-    "Keep it concise but complete: say what needs to be said, nothing more. "
-    "Avoid filler phrases like 'I hope this email finds you well', 'please do not "
-    "hesitate to reach out', 'as per my previous email', or 'going forward'. "
-    "Write like a thoughtful human, not a template. "
-    "Use \\n for line breaks between paragraphs."
-)
+    if not supabase_db:
+        return jsonify({'error': 'Service unavailable.'}), 503
 
+    # Invite-only: check allowed_emails table before sending anything
+    try:
+        result = supabase_db.table('allowed_emails').select('email').eq('email', email).execute()
+        if not result.data:
+            return jsonify({'error': "You're not on the invite list. Contact the admin to get access."}), 403
+    except Exception as e:
+        app.logger.error('allowed_emails check failed: %s', e)
+        return jsonify({'error': 'Service unavailable. Please try again.'}), 503
+
+    client = _auth_client()
+    if not client:
+        return jsonify({'error': 'Auth service unavailable.'}), 503
+
+    try:
+        # Use an explicit env var so the redirect URL can't be spoofed via Host header
+        base_url = os.environ.get('APP_BASE_URL', '').rstrip('/') or request.url_root.rstrip('/')
+        client.auth.sign_in_with_otp({
+            'email': email,
+            'options': {'email_redirect_to': f'{base_url}/auth/callback'},
+        })
+        return jsonify({'sent': True})
+    except Exception as e:
+        app.logger.error('sign_in_with_otp failed: %s', e)
+        return jsonify({'error': 'Failed to send magic link. Please try again.'}), 500
+
+
+@app.route('/auth/callback')
+def auth_callback():
+    """Handle the redirect from Supabase after the user clicks the magic link.
+
+    Newer Supabase behaviour: query params contain token_hash + type.
+    Older behaviour: tokens arrive as a URL hash fragment — we return a JS
+    bridge page that reads them and posts to /auth/session.
+    """
+    token_hash = request.args.get('token_hash')
+    otp_type = request.args.get('type', 'magiclink')
+
+    if token_hash:
+        client = _auth_client()
+        if not client:
+            return redirect('/login?error=auth_unavailable')
+        try:
+            response = client.auth.verify_otp({'token_hash': token_hash, 'type': otp_type})
+            user = response.user
+            if user and user.id:
+                session.permanent = True
+                session['user_id'] = user.id
+                session['user_email'] = user.email or ''
+                return redirect('/')
+        except Exception as e:
+            app.logger.error('verify_otp failed (type=%s): %s', otp_type, e)
+        return redirect('/login?error=invalid_link')
+
+    # No token_hash in query string — return a JS bridge for hash-fragment flow
+    return render_template_string(
+        '<!DOCTYPE html><html><head><title>MailLens — Signing in…</title>'
+        '<style>body{font-family:sans-serif;color:#888;text-align:center;margin-top:120px;'
+        'background:#1a1d28}</style></head><body>'
+        '<p>Signing in…</p>'
+        '<script>'
+        '(function(){'
+        'var h=location.hash.slice(1),p={};'
+        'h.split("&").forEach(function(s){var kv=s.split("=");'
+        'if(kv.length===2)p[decodeURIComponent(kv[0])]=decodeURIComponent(kv[1]);});'
+        'if(p.access_token){'
+        'fetch("/auth/session",{method:"POST",'
+        'headers:{"Content-Type":"application/json"},'
+        'body:JSON.stringify({access_token:p.access_token,refresh_token:p.refresh_token||""})})'
+        '.then(function(r){return r.json();})'
+        '.then(function(d){location.href=d.ok?"/":"/login?error=invalid_link";})'
+        '.catch(function(){location.href="/login?error=invalid_link";});'
+        '}else if(p.error){'
+        'location.href="/login?error="+encodeURIComponent(p.error_description||p.error);'
+        '}else{location.href="/login?error=invalid_link";}})();'
+        '</script></body></html>'
+    )
+
+
+@app.route('/auth/session', methods=['POST'])
+def auth_session():
+    """Receive access_token from the JS bridge and establish a Flask session."""
+    data = request.get_json() or {}
+    access_token = str(data.get('access_token', '')).strip()
+
+    if not access_token:
+        return jsonify({'ok': False}), 400
+
+    client = _auth_client()
+    if not client:
+        return jsonify({'ok': False}), 503
+
+    try:
+        user_response = client.auth.get_user(jwt=access_token)
+        user = user_response.user
+        if not user or not user.id:
+            return jsonify({'ok': False}), 401
+
+        # Enforce invite-only gate — same check as login_post
+        if not supabase_db:
+            return jsonify({'ok': False}), 503
+        email = (user.email or '').strip().lower()
+        result = supabase_db.table('allowed_emails').select('email').eq('email', email).execute()
+        if not result.data:
+            app.logger.warning('auth_session: non-invited user blocked: %s', email)
+            return jsonify({'ok': False}), 403
+
+        session.permanent = True
+        session['user_id'] = user.id
+        session['user_email'] = user.email or ''
+        return jsonify({'ok': True})
+    except Exception as e:
+        app.logger.error('auth_session failed: %s', e)
+        return jsonify({'ok': False}), 401
+
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect('/login')
+
+
+@app.route('/me')
+@auth_required
+def me():
+    return jsonify({'id': session.get('user_id', ''), 'email': session.get('user_email', '')})
+
+
+# ── Main app route ────────────────────────────────────────────────────────────
 
 @app.route('/')
+@auth_required
 def index():
     return render_template('index.html')
 
 
-# ── History routes ──────────────────────────────────────────────────────────
+# ── History routes ────────────────────────────────────────────────────────────
 
 @app.route('/history', methods=['GET'])
+@auth_required
 @limiter.limit("60 per hour")
 def get_history():
     if not supabase_db:
@@ -111,7 +271,7 @@ def get_history():
     try:
         result = (supabase_db.table('email_history')
                   .select('*')
-                  .eq('session_id', _uid())
+                  .eq('user_id', _uid())
                   .order('created_at', desc=True)
                   .limit(50)
                   .execute())
@@ -137,6 +297,7 @@ def get_history():
 
 
 @app.route('/history', methods=['POST'])
+@auth_required
 @limiter.limit("60 per hour")
 def save_history():
     if not supabase_db:
@@ -149,7 +310,7 @@ def save_history():
             _urgency_post = ''
         supabase_db.table('email_history').insert({
             'id':            new_id,
-            'session_id':    _uid(),
+            'user_id':       _uid(),
             'preview':       (data.get('preview') or '')[:200],
             'urgency':       _urgency_post,
             'email_text':    str(data.get('email') or '')[:50_000],
@@ -164,12 +325,13 @@ def save_history():
 
 
 @app.route('/history', methods=['DELETE'])
+@auth_required
 @limiter.limit("10 per hour")
 def clear_history():
     if not supabase_db:
         return jsonify({'ok': True})
     try:
-        supabase_db.table('email_history').delete().eq('session_id', _uid()).execute()
+        supabase_db.table('email_history').delete().eq('user_id', _uid()).execute()
     except Exception:
         pass
     return jsonify({'ok': True})
@@ -182,6 +344,7 @@ _UUID_RE = re.compile(
 
 
 @app.route('/history/<item_id>', methods=['PATCH'])
+@auth_required
 @limiter.limit("120 per hour")
 def update_history_item(item_id):
     if not _UUID_RE.match(item_id):
@@ -208,7 +371,7 @@ def update_history_item(item_id):
         (supabase_db.table('email_history')
          .update(patch)
          .eq('id', item_id)
-         .eq('session_id', _uid())
+         .eq('user_id', _uid())
          .execute())
     except Exception as e:
         app.logger.error('Supabase PATCH failed for %s: %s', item_id, e)
@@ -216,12 +379,12 @@ def update_history_item(item_id):
     return jsonify({'ok': True})
 
 
-# ───────────────────────────────────────────────────────────────────────────
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
-_MAX_JSON_BYTES = 50 * 1024  # 50 KB
+_MAX_JSON_BYTES = 50 * 1024
+
 
 def _cap_json(obj):
-    """Return obj if its JSON representation is within the size limit, else None."""
     if obj is None:
         return None
     try:
@@ -238,7 +401,7 @@ def _cap_email_text(text, max_words=3000):
     return ' '.join(words[:max_words]) + '\n\n[Note: email was truncated to 3000 words for processing.]'
 
 
-# ── Pre/post analysis hooks ──────────────────────────────────────────────────
+# ── Pre/post analysis hooks ───────────────────────────────────────────────────
 
 _INJECTION_RE = re.compile(
     r'\b('
@@ -261,17 +424,8 @@ _EMAIL_SIGNALS_RE = re.compile(
     re.IGNORECASE,
 )
 
-# PII patterns — UK-specific
-# Only redact when preceded by "sort code" to avoid matching DD-MM-YY dates
-_UK_SORT_CODE_RE  = re.compile(
-    r'(sort\s*code\s*:?\s*)(\d{2}-\d{2}-\d{2})',
-    re.IGNORECASE,
-)
-# Only redact 8-digit numbers that follow an explicit account-number label
-_UK_ACCOUNT_NO_RE = re.compile(
-    r'(account\s*(?:number|no\.?|num\.?|#)?\s*:?\s*)(\d{8})\b',
-    re.IGNORECASE,
-)
+_UK_SORT_CODE_RE  = re.compile(r'(sort\s*code\s*:?\s*)(\d{2}-\d{2}-\d{2})', re.IGNORECASE)
+_UK_ACCOUNT_NO_RE = re.compile(r'(account\s*(?:number|no\.?|num\.?|#)?\s*:?\s*)(\d{8})\b', re.IGNORECASE)
 _UK_PHONE_RE      = re.compile(r'(?:\+44|0044)[\s\-]?\d{10}|(?<!\d)0[1-9]\d{9}(?!\d)')
 
 _REQUIRED_FIELDS = frozenset({
@@ -280,21 +434,35 @@ _REQUIRED_FIELDS = frozenset({
 })
 _VALID_URGENCY = frozenset({'low', 'medium', 'high'})
 
+TONE_GUIDES = {
+    "Professional": "clear, respectful, and business-appropriate — warm but not casual, direct without being blunt",
+    "Friendly":     "warm, personable, and upbeat — like writing to a colleague you know well; contractions and light warmth are fine",
+    "Formal":       "polished and structured — full sentences, no contractions, measured language suited to senior stakeholders or official correspondence",
+    "Concise":      "brief and to the point — every sentence earns its place; cut pleasantries to a minimum without being abrupt",
+    "Empathetic":   "understanding and supportive — acknowledge feelings or pressure the sender may be under before moving to practicalities",
+}
+
+REPLY_INSTRUCTIONS = (
+    "Structure it with a natural greeting, a body that directly addresses the specific "
+    "points and questions raised in the email (reference them concretely — no vague "
+    "acknowledgements), and a clear sign-off. "
+    "Keep it concise but complete: say what needs to be said, nothing more. "
+    "Avoid filler phrases like 'I hope this email finds you well', 'please do not "
+    "hesitate to reach out', 'as per my previous email', or 'going forward'. "
+    "Write like a thoughtful human, not a template. "
+    "Use \\n for line breaks between paragraphs."
+)
+
 
 class _PreAnalyseRejected(Exception):
-    """Raised by _pre_analyse to signal a clean HTTP rejection."""
     def __init__(self, message: str, status: int = 400):
         self.message = message
         self.status  = status
 
 
 def _pre_analyse(email_text: str) -> str:
-    """
-    Validate and sanitise email text before it is sent to Claude.
-    Returns the processed text on success.
-    Raises _PreAnalyseRejected with a client-safe message on rejection.
-    """
-    ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    import datetime as _dt
+    ts = _dt.datetime.now(_dt.timezone.utc).isoformat()
     token_estimate = int(len(email_text.split()) * 1.3)
     app.logger.info('[pre-hook] ts=%s tokens~=%d', ts, token_estimate)
 
@@ -302,29 +470,21 @@ def _pre_analyse(email_text: str) -> str:
         app.logger.warning('[pre-hook] Prompt injection attempt blocked at %s', ts)
         raise _PreAnalyseRejected('Input rejected: possible prompt injection attempt detected.')
 
-    # Require at least one recognisable email signal or an @ address.
-    # Longer texts are accepted without a signal — they may be forwarded chains.
     has_email_signal = '@' in email_text or bool(_EMAIL_SIGNALS_RE.search(email_text))
     if not has_email_signal and len(email_text.split()) < 5:
         raise _PreAnalyseRejected(
             'Input does not appear to be an email. Please paste the full email text.'
         )
 
-    # Strip PII before sending to Claude
     processed = _UK_PHONE_RE.sub('[phone removed]', email_text)
     processed = _UK_SORT_CODE_RE.sub(r'\1[sort code removed]', processed)
-    # Keep the label, redact only the 8-digit number itself
     processed = _UK_ACCOUNT_NO_RE.sub(r'\1[account number removed]', processed)
-
     return processed
 
 
 def _post_analyse(result: dict) -> dict:
-    """
-    Validate and enrich the parsed analysis dict.
-    Raises ValueError with a human-readable message if required fields are absent.
-    """
-    ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    import datetime as _dt
+    ts = _dt.datetime.now(_dt.timezone.utc).isoformat()
 
     missing = _REQUIRED_FIELDS - result.keys()
     if missing:
@@ -343,9 +503,10 @@ def _post_analyse(result: dict) -> dict:
     return result
 
 
-# ────────────────────────────────────────────────────────────────────────────
+# ── Analysis routes ───────────────────────────────────────────────────────────
 
 @app.route('/analyse', methods=['POST'])
+@auth_required
 @limiter.limit("20 per hour")
 def analyse():
     data = request.get_json()
@@ -353,7 +514,6 @@ def analyse():
     _raw_tone = (data or {}).get('tone', 'Professional').strip()
     tone = _raw_tone if _raw_tone in TONE_GUIDES else 'Professional'
     name = str((data or {}).get('name', '') or '')[:50].strip()
-    # Reject name values that carry injection patterns
     if _INJECTION_RE.search(name):
         name = ''
 
@@ -362,7 +522,6 @@ def analyse():
 
     email_text = _cap_email_text(email_text)
 
-    # Pre-hook: injection check, email validation, PII strip
     try:
         email_text = _pre_analyse(email_text)
     except _PreAnalyseRejected as exc:
@@ -416,7 +575,6 @@ def analyse():
     except (json.JSONDecodeError, ValueError):
         return jsonify({'error': 'Analysis failed — unexpected response format. Please try again.'}), 500
 
-    # Post-hook: field validation, urgency normalisation, urgent_alert flag
     try:
         result = _post_analyse(result)
     except ValueError as e:
@@ -427,6 +585,7 @@ def analyse():
 
 
 @app.route('/analyse-thread', methods=['POST'])
+@auth_required
 @limiter.limit("20 per hour")
 def analyse_thread():
     data = request.get_json()
@@ -437,7 +596,6 @@ def analyse_thread():
     _raw_tone = (data or {}).get('tone', 'Professional').strip()
     tone = _raw_tone if _raw_tone in TONE_GUIDES else 'Professional'
     name = str((data or {}).get('name', '') or '')[:50].strip()
-    # Reject name values that carry injection patterns
     if _INJECTION_RE.search(name):
         name = ''
 
@@ -446,7 +604,6 @@ def analyse_thread():
 
     email_text = _cap_email_text(email_text)
 
-    # Pre-hook: injection check, email validation, PII strip
     try:
         email_text = _pre_analyse(email_text)
     except _PreAnalyseRejected as exc:
@@ -462,14 +619,12 @@ def analyse_thread():
         prev_urgency = _raw_urg if _raw_urg in _VALID_URGENCY else 'unknown'
         prev_sender  = str(item.get('analysis', {}).get('sender', f'Sender {i}'))[:100]
         prev_email   = _cap_email_text(str(item.get('email', '') or ''), max_words=300)
-        # Screen all thread content for injection before it enters the prompt
         if _INJECTION_RE.search(prev_email):
             prev_email = '[content redacted: injection pattern detected]'
         if _INJECTION_RE.search(prev_summary):
             prev_summary = '[summary redacted]'
         if _INJECTION_RE.search(prev_sender):
             prev_sender = f'Sender {i}'
-        # Strip PII from historical email content
         prev_email = _UK_PHONE_RE.sub('[phone removed]', prev_email)
         prev_email = _UK_SORT_CODE_RE.sub(r'\1[sort code removed]', prev_email)
         prev_email = _UK_ACCOUNT_NO_RE.sub(r'\1[account number removed]', prev_email)
@@ -526,7 +681,6 @@ def analyse_thread():
     except (json.JSONDecodeError, ValueError):
         return jsonify({'error': 'Analysis failed — unexpected response format. Please try again.'}), 500
 
-    # Post-hook: field validation, urgency normalisation, urgent_alert flag
     try:
         result = _post_analyse(result)
     except ValueError as e:
@@ -537,6 +691,7 @@ def analyse_thread():
 
 
 @app.route('/regenerate-reply', methods=['POST'])
+@auth_required
 @limiter.limit("20 per hour")
 def regenerate_reply():
     data = request.get_json()
@@ -544,7 +699,6 @@ def regenerate_reply():
     _raw_tone = (data or {}).get('tone', 'Professional').strip()
     tone = _raw_tone if _raw_tone in TONE_GUIDES else 'Professional'
     name = str((data or {}).get('name', '') or '')[:50].strip()
-    # Reject name values that carry injection patterns
     if _INJECTION_RE.search(name):
         name = ''
 
@@ -603,10 +757,7 @@ def regenerate_reply():
     return Response(
         stream_with_context(generate()),
         mimetype='text/event-stream',
-        headers={
-            'Cache-Control': 'no-cache',
-            'X-Accel-Buffering': 'no',
-        }
+        headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'},
     )
 
 

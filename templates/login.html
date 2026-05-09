@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MailLens — Sign In</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="/static/style.css" />
+  <script>
+    (function(){var t=localStorage.getItem('maillens.theme')||'dark';document.documentElement.setAttribute('data-theme',t)})();
+  </script>
+</head>
+<body class="login-body">
+
+<div class="login-wrap">
+  <div class="login-card">
+
+    <!-- Brand -->
+    <div class="login-brand">
+      <div class="brand-mark"></div>
+      <span class="login-brand-name">MailLens</span>
+      <span class="beta-badge">Beta</span>
+    </div>
+
+    <!-- Form state -->
+    <div id="loginForm">
+      <p class="login-heading">Sign in to MailLens</p>
+      <p class="login-sub">Enter your email and we'll send you a magic link.</p>
+
+      <div class="login-field">
+        <label class="login-label" for="emailInput">Email address</label>
+        <input
+          type="email"
+          id="emailInput"
+          class="login-input"
+          placeholder="you@example.com"
+          autocomplete="email"
+          autofocus
+        />
+      </div>
+
+      <div class="login-error" id="loginError"></div>
+
+      <button class="btn-primary login-btn" id="loginBtn" onclick="sendLink()">
+        <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2.5 4.5l5.5 3.5 5.5-3.5"/><rect x="1.5" y="3" width="13" height="10" rx="2"/>
+        </svg>
+        <span id="btnLabel">Send magic link</span>
+        <div class="btn-spinner" id="loginSpinner" style="display:none"></div>
+      </button>
+
+      <p class="login-hint">Invite only — contact the admin if you need access.</p>
+    </div>
+
+    <!-- Sent state -->
+    <div id="sentState" style="display:none">
+      <div class="sent-icon">
+        <svg viewBox="0 0 16 16" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2.5 4.5l5.5 3.5 5.5-3.5"/><rect x="1.5" y="3" width="13" height="10" rx="2"/>
+        </svg>
+      </div>
+      <p class="sent-title">Check your email</p>
+      <p class="sent-sub" id="sentEmailMsg"></p>
+      <button class="btn-ghost login-back" onclick="goBack()">Use a different email</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// Show URL-level error (e.g. from a failed magic link)
+(function () {
+  var err = new URLSearchParams(location.search).get('error');
+  if (!err) return;
+  var msgs = {
+    invalid_link:    'The sign-in link is invalid or has expired. Please request a new one.',
+    auth_unavailable:'Authentication service unavailable. Please try again.',
+  };
+  showError(msgs[err] || 'Sign-in failed. Please try again.');
+})();
+
+var emailInput = document.getElementById('emailInput');
+emailInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') sendLink(); });
+
+function showError(msg) {
+  var el = document.getElementById('loginError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function clearError() {
+  var el = document.getElementById('loginError');
+  el.textContent = '';
+  el.style.display = 'none';
+}
+
+async function sendLink() {
+  var email = emailInput.value.trim();
+  clearError();
+
+  if (!email) {
+    showError('Please enter your email address.');
+    return;
+  }
+
+  var btn     = document.getElementById('loginBtn');
+  var spinner = document.getElementById('loginSpinner');
+  var label   = document.getElementById('btnLabel');
+
+  btn.disabled      = true;
+  label.textContent = 'Sending…';
+  spinner.style.display = 'block';
+
+  try {
+    var res  = await fetch('/login', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ email: email }),
+    });
+    var data = await res.json();
+
+    if (data.sent) {
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('sentEmailMsg').textContent = 'We sent a link to ' + email + '. Click it to sign in — it expires after a few minutes.';
+      document.getElementById('sentState').style.display = 'block';
+    } else {
+      showError(data.error || 'Something went wrong. Please try again.');
+    }
+  } catch (e) {
+    showError('Network error. Please try again.');
+  } finally {
+    btn.disabled      = false;
+    label.textContent = 'Send magic link';
+    spinner.style.display = 'none';
+  }
+}
+
+function goBack() {
+  document.getElementById('sentState').style.display = 'none';
+  document.getElementById('loginForm').style.display = 'block';
+  emailInput.value = '';
+  clearError();
+  emailInput.focus();
+}
+</script>
+
+</body>
+</html>

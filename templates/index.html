@@ -44,8 +44,11 @@
     </div>
     <div class="user-chip">
       <div class="uc-avatar" id="navAvatar">?</div>
-      <span class="uc-name" id="navName">Your name</span>
+      <span class="uc-name" id="navName">…</span>
     </div>
+    <button class="nav-icon-btn" onclick="doLogout()" title="Sign out" aria-label="Sign out">
+      <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3H3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h3"/><path d="M10.5 11l3-3-3-3"/><path d="M13.5 8H6"/></svg>
+    </button>
   </nav>
 
   <!-- ── Main split ── -->
@@ -1113,25 +1116,40 @@ function setTheme(theme) {
   setTheme(saved);
 })();
 
+/* ── Auth user display ── */
+function doLogout() { window.location.href = '/logout'; }
+
+(async function fetchUser() {
+  try {
+    const res = await fetch('/me');
+    if (!res.ok) { window.location.href = '/login'; return; }
+    const data = await res.json();
+    const email    = data.email || '';
+    const initials = email.split('@')[0].slice(0, 2).toUpperCase() || '?';
+    const navAvatar = document.getElementById('navAvatar');
+    const navName   = document.getElementById('navName');
+    if (navAvatar) navAvatar.textContent = initials;
+    if (navName)   navName.textContent   = email;
+  } catch (e) {
+    window.location.href = '/login';
+  }
+})();
+
 (function initName() {
-  const input = document.getElementById('senderName');
-  const nav   = document.getElementById('navName');
-  const avatar = document.getElementById('navAvatar');
+  const input    = document.getElementById('senderName');
   const ipAvatar = document.getElementById('ipAvatar');
 
-  function updateName(val) {
+  function updateAvatar(val) {
     const name = val.trim();
-    if (nav)    nav.textContent   = name || 'Your name';
-    if (avatar) avatar.textContent = name ? name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : '?';
     if (ipAvatar) ipAvatar.textContent = name ? name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : '?';
   }
 
   const saved = localStorage.getItem('maillens_name') || '';
   input.value = saved;
-  updateName(saved);
+  updateAvatar(saved);
   input.addEventListener('input', () => {
     localStorage.setItem('maillens_name', input.value.trim());
-    updateName(input.value);
+    updateAvatar(input.value);
   });
 })();
 
