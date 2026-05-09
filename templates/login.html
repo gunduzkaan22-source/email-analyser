@@ -42,7 +42,7 @@
 
       <div class="login-error" id="loginError"></div>
 
-      <button class="btn-primary login-btn" id="loginBtn" onclick="sendLink()">
+      <button class="btn-primary login-btn" id="loginBtn">
         <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
           <path d="M2.5 4.5l5.5 3.5 5.5-3.5"/><rect x="1.5" y="3" width="13" height="10" rx="2"/>
         </svg>
@@ -63,7 +63,7 @@
       </div>
       <p class="sent-title">Check your email</p>
       <p class="sent-sub" id="sentEmailMsg"></p>
-      <button class="btn-ghost login-back" onclick="goBack()">Use a different email</button>
+      <button class="btn-ghost login-back" id="backBtn">Use a different email</button>
     </div>
 
   </div>
@@ -83,6 +83,8 @@
 
 var emailInput = document.getElementById('emailInput');
 emailInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') sendLink(); });
+document.getElementById('loginBtn').addEventListener('click', sendLink);
+document.getElementById('backBtn').addEventListener('click', goBack);
 
 function showError(msg) {
   var el = document.getElementById('loginError');
