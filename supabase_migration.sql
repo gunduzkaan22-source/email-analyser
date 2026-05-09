@@ -21,14 +21,36 @@ CREATE TABLE IF NOT EXISTS email_history (
 -- Add user_id column if the table already exists from a previous migration
 ALTER TABLE email_history ADD COLUMN IF NOT EXISTS user_id UUID;
 
+-- Make session_id nullable — new rows use user_id and omit session_id
+ALTER TABLE email_history ALTER COLUMN session_id DROP NOT NULL;
+
+-- Partial index: session_id is legacy and no longer written, so exclude NULLs
 CREATE INDEX IF NOT EXISTS email_history_session_idx
-    ON email_history(session_id, created_at DESC);
+    ON email_history(session_id, created_at DESC)
+    WHERE session_id IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS email_history_user_idx
     ON email_history(user_id, created_at DESC)
     WHERE user_id IS NOT NULL;
 
-ALTER TABLE email_history DISABLE ROW LEVEL SECURITY;
+ALTER TABLE email_history ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY IF NOT EXISTS "Users can read own history"
+  ON email_history FOR SELECT TO authenticated
+  USING (user_id = auth.uid());
+
+CREATE POLICY IF NOT EXISTS "Users can insert own history"
+  ON email_history FOR INSERT TO authenticated
+  WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY IF NOT EXISTS "Users can update own history"
+  ON email_history FOR UPDATE TO authenticated
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY IF NOT EXISTS "Users can delete own history"
+  ON email_history FOR DELETE TO authenticated
+  USING (user_id = auth.uid());
 
 -- ── allowed_emails (invite-only access control) ──────────────────────────────
 
@@ -37,7 +59,11 @@ CREATE TABLE IF NOT EXISTS allowed_emails (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-ALTER TABLE allowed_emails DISABLE ROW LEVEL SECURITY;
+-- No user-facing policies needed: the Supabase service role key bypasses RLS
+-- entirely (documented behaviour), so the server can still read this table.
+-- Anon and authenticated roles get no access by default when RLS is enabled
+-- and no permissive policy exists.
+ALTER TABLE allowed_emails ENABLE ROW LEVEL SECURITY;
 
 -- Seed the admin / first user
 INSERT INTO allowed_emails (email) VALUES ('gunduzkaan22@gmail.com')
