@@ -68,3 +68,17 @@ ALTER TABLE allowed_emails ENABLE ROW LEVEL SECURITY;
 -- Seed the admin / first user
 INSERT INTO allowed_emails (email) VALUES ('gunduzkaan22@gmail.com')
     ON CONFLICT (email) DO NOTHING;
+
+-- ── Data retention (pg_cron) ─────────────────────────────────────────────────
+-- Requires pg_cron extension (available on Supabase Pro).
+-- Enable via Dashboard → Database → Extensions, or via the SQL below.
+
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+-- Nightly job: delete analyses older than 90 days (runs 00:00 UTC daily).
+-- Use SELECT ... ON CONFLICT to make this idempotent on re-run.
+SELECT cron.schedule(
+    'delete-old-email-history',
+    '0 0 * * *',
+    $$DELETE FROM public.email_history WHERE created_at < NOW() - INTERVAL '90 days'$$
+);

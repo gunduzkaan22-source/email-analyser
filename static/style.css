@@ -583,11 +583,14 @@ textarea, input { font-family: inherit; }
 }
 .login-privacy-link a:hover { color: var(--teal); }
 
-/* Sidebar — privacy row */
+/* Sidebar — footer action row */
 .sb-privacy-row {
   border-top: 1px solid var(--border);
   padding: 8px 14px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 .sb-privacy-link {
   font-size: 11px;
@@ -595,10 +598,19 @@ textarea, input { font-family: inherit; }
   text-decoration: none;
   font-family: var(--font-mono);
   letter-spacing: 0.01em;
-  display: inline-block;
-  padding: 2px 0;
 }
 .sb-privacy-link:hover { color: var(--teal); }
+.sb-text-action {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.01em;
+  color: var(--text-4);
+  cursor: pointer;
+}
+.sb-text-action:hover { color: var(--u-high); }
 
 /* ── Privacy page ── */
 .privacy-body {
