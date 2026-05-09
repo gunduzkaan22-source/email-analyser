@@ -23,6 +23,10 @@ app = Flask(__name__)
 _secret_key = os.environ.get('SECRET_KEY', '')
 if not _secret_key:
     raise RuntimeError('SECRET_KEY environment variable must be set before starting the app.')
+
+_anthropic_api_key = os.environ.get('ANTHROPIC_API_KEY', '')
+if not _anthropic_api_key:
+    raise RuntimeError('ANTHROPIC_API_KEY environment variable must be set before starting the app.')
 app.secret_key = _secret_key
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
@@ -57,7 +61,7 @@ limiter = Limiter(
     default_limits=[],
 )
 
-_anthropic = anthropic.Anthropic()
+_anthropic = anthropic.Anthropic(api_key=_anthropic_api_key)
 
 
 # ── Auth helpers ─────────────────────────────────────────────────────────────
@@ -90,7 +94,8 @@ def set_security_headers(response):
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
-    response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
+    response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=(), clipboard-read=()'
+    response.headers['Strict-Transport-Security'] = 'max-age=63072000; includeSubDomains'
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline'; "
@@ -207,6 +212,7 @@ def auth_callback():
 
 
 @app.route('/auth/session', methods=['POST'])
+@limiter.limit("20 per hour")
 def auth_session():
     """Receive access_token from the JS bridge and establish a Flask session."""
     data = request.get_json() or {}
