@@ -147,7 +147,10 @@ def login_post():
         })
         return jsonify({'sent': True})
     except Exception as e:
+        msg = str(e).lower()
         app.logger.error('sign_in_with_otp failed: %s', e)
+        if 'rate limit' in msg or 'too many' in msg:
+            return jsonify({'error': 'Too many sign-in emails sent. Please wait a few minutes and try again.'}), 429
         return jsonify({'error': 'Failed to send magic link. Please try again.'}), 500
 
 
