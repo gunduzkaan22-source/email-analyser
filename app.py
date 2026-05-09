@@ -20,6 +20,10 @@ _secret_key = os.environ.get('SECRET_KEY', '')
 if not _secret_key:
     raise RuntimeError('SECRET_KEY environment variable must be set before starting the app.')
 app.secret_key = _secret_key
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+# Set SESSION_COOKIE_SECURE=True in production (requires HTTPS)
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('FLASK_ENV') == 'production'
 
 _SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
 _SUPABASE_KEY = os.environ.get('SUPABASE_ANON_KEY', '')
@@ -41,6 +45,26 @@ _anthropic = anthropic.Anthropic()
 @app.errorhandler(429)
 def ratelimit_handler(e):
     return jsonify({'error': 'Rate limit exceeded. You can analyse up to 20 emails per hour. Please try again later.'}), 429
+
+
+@app.after_request
+def set_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
+    # unsafe-inline required by existing inline scripts/styles; tighten by migrating to external files later
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "img-src 'self' data:; "
+        "connect-src 'self'; "
+        "object-src 'none'; "
+        "frame-ancestors 'none';"
+    )
+    return response
 
 
 @app.before_request
@@ -80,6 +104,7 @@ def index():
 # ── History routes ──────────────────────────────────────────────────────────
 
 @app.route('/history', methods=['GET'])
+@limiter.limit("60 per hour")
 def get_history():
     if not supabase_db:
         return jsonify([])
@@ -112,6 +137,7 @@ def get_history():
 
 
 @app.route('/history', methods=['POST'])
+@limiter.limit("60 per hour")
 def save_history():
     if not supabase_db:
         return jsonify({'id': str(uuid.uuid4())})
@@ -126,7 +152,7 @@ def save_history():
             'session_id':    _uid(),
             'preview':       (data.get('preview') or '')[:200],
             'urgency':       _urgency_post,
-            'email_text':    data.get('email', ''),
+            'email_text':    str(data.get('email') or '')[:50_000],
             'analysis_json': _cap_json(data.get('data')),
             'is_thread':     data.get('isThread', False),
             'thread_count':  data.get('threadCount', 0),
@@ -138,6 +164,7 @@ def save_history():
 
 
 @app.route('/history', methods=['DELETE'])
+@limiter.limit("10 per hour")
 def clear_history():
     if not supabase_db:
         return jsonify({'ok': True})
@@ -155,6 +182,7 @@ _UUID_RE = re.compile(
 
 
 @app.route('/history/<item_id>', methods=['PATCH'])
+@limiter.limit("120 per hour")
 def update_history_item(item_id):
     if not _UUID_RE.match(item_id):
         return jsonify({'error': 'Invalid id'}), 400
