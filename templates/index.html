@@ -13,13 +13,13 @@
 </head>
 <body>
 
-<div class="backdrop" id="backdrop" onclick="closeSidebar()"></div>
+<div class="backdrop" id="backdrop"></div>
 
 <div class="app">
 
   <!-- ── Top nav ── -->
   <nav class="topnav">
-    <button class="mobile-menu-btn nav-icon-btn" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+    <button class="mobile-menu-btn nav-icon-btn" aria-label="Toggle sidebar">
       <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h12M2 8h12M2 12h12"/></svg>
     </button>
     <div class="brand">
@@ -40,10 +40,10 @@
       <span class="kbd">⌘K</span>
     </div>
     <div class="theme-toggle" role="group" aria-label="Theme">
-      <button class="tt-btn" id="themeLight" onclick="setTheme('light')" title="Light mode">
+      <button class="tt-btn" id="themeLight" title="Light mode">
         <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.5M8 13v1.5M2.5 8H1M15 8h-1.5M3.5 3.5l1 1M11.5 11.5l1 1M12.5 3.5l-1 1M4.5 11.5l-1 1"/></svg>
       </button>
-      <button class="tt-btn" id="themeDark" onclick="setTheme('dark')" title="Dark mode">
+      <button class="tt-btn" id="themeDark" title="Dark mode">
         <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 9.5A5.5 5.5 0 1 1 6.5 2.5a4 4 0 0 0 7 7z"/></svg>
       </button>
     </div>
@@ -63,7 +63,7 @@
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
       <div class="sb-section">
-        <button class="sb-new" onclick="newAnalysis()">
+        <button class="sb-new" id="sbNewBtn">
           <span class="plus">+</span>
           <span>New analysis</span>
           <span class="kbd">⌘N</span>
@@ -74,23 +74,23 @@
         <span class="sb-search-ico">
           <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.5" cy="6.5" r="3.5"/><path d="M9.5 9.5l3 3"/></svg>
         </span>
-        <input type="search" id="searchInput" class="sb-search" placeholder="Search history…" oninput="onSearchInput()" autocomplete="off" spellcheck="false" />
-        <button class="sb-search-clear" id="searchClear" onclick="clearSearch()" aria-label="Clear search" title="Clear">
+        <input type="search" id="searchInput" class="sb-search" placeholder="Search history…" autocomplete="off" spellcheck="false" />
+        <button class="sb-search-clear" id="searchClear" aria-label="Clear search" title="Clear">
           <svg viewBox="0 0 16 16" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
         </button>
       </div>
 
       <div class="sb-pills">
-        <button class="sb-pill filter-btn active" data-filter="all" onclick="setFilter('all')">
+        <button class="sb-pill filter-btn active" data-filter="all">
           All <span class="sb-pill-count" id="cnt-all"></span>
         </button>
-        <button class="sb-pill filter-btn lvl-high" data-filter="high" onclick="setFilter('high')">
+        <button class="sb-pill filter-btn lvl-high" data-filter="high">
           <span class="sb-pill-dot"></span>High <span class="sb-pill-count" id="cnt-high"></span>
         </button>
-        <button class="sb-pill filter-btn lvl-med" data-filter="medium" onclick="setFilter('medium')">
+        <button class="sb-pill filter-btn lvl-med" data-filter="medium">
           <span class="sb-pill-dot"></span>Med <span class="sb-pill-count" id="cnt-medium"></span>
         </button>
-        <button class="sb-pill filter-btn lvl-low" data-filter="low" onclick="setFilter('low')">
+        <button class="sb-pill filter-btn lvl-low" data-filter="low">
           <span class="sb-pill-dot"></span>Low <span class="sb-pill-count" id="cnt-low"></span>
         </button>
       </div>
@@ -118,7 +118,7 @@
         </div>
       </div>
       <div class="sb-privacy-row">
-        <button class="sb-text-action" onclick="clearHistory()">Clear history</button>
+        <button class="sb-text-action" id="clearHistoryBtn">Clear history</button>
         <a href="/privacy" class="sb-privacy-link">Privacy</a>
       </div>
     </aside>
@@ -130,21 +130,21 @@
         <div class="topnav-spacer"></div>
         <div class="ws-actions">
           <div class="seg">
-            <button class="seg-btn active" id="modeAnalyse" onclick="resetAll()">
+            <button class="seg-btn active" id="modeAnalyse">
               <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="3.5"/><path d="M9.5 9.5l3 3"/></svg>
               Analyse
             </button>
-            <button class="seg-btn" id="modeThread" onclick="startThread()" disabled>
+            <button class="seg-btn" id="modeThread" disabled>
               <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.5a1.5 1.5 0 0 1 1.5-1.5h7a1.5 1.5 0 0 1 1.5 1.5v5a1.5 1.5 0 0 1-1.5 1.5H8l-3 2.5V11H4.5A1.5 1.5 0 0 1 3 9.5v-5z"/></svg>
               Thread
               <span id="threadCountBadge" style="display:none;font-family:var(--font-mono);font-size:10px;font-weight:500;padding:0 5px;border-radius:4px;background:var(--bg-1);color:var(--text-3);border:1px solid var(--border)"></span>
             </button>
           </div>
-          <button class="btn-ghost btn-sm" onclick="exportToExcel()" title="Export to Excel">
+          <button class="btn-ghost btn-sm" id="wsExportBtn" title="Export to Excel">
             <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9M5 8l3 3 3-3"/><path d="M3 13h10"/></svg>
             Export
           </button>
-          <button class="btn-ghost btn-sm" onclick="resetAll()" title="Close">
+          <button class="btn-ghost btn-sm" id="wsCloseBtn" title="Close">
             <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
           </button>
         </div>
@@ -172,7 +172,7 @@
                 <span id="readTimeDisplay">under 1 min</span>
               </div>
               <div class="topnav-spacer"></div>
-              <button class="btn-primary" id="analyseBtn" onclick="analyse()">
+              <button class="btn-primary" id="analyseBtn">
                 <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5l1.2 3.3L12.5 7l-3.3 1.2L8 11.5 6.8 8.2 3.5 7l3.3-1.2L8 2.5z"/></svg>
                 <span id="btnLabel">Analyse Email</span>
                 <div class="btn-spinner" id="spinner" style="display:none"></div>
@@ -247,7 +247,7 @@
                   </span>
                   Urgency
                   <span class="spacer"></span>
-                  <button class="urgency-override-btn" id="urgencyOverrideBtn" onclick="openUrgencyOverride()" title="Override">
+                  <button class="urgency-override-btn" id="urgencyOverrideBtn" title="Override">
                     <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2.5a1.5 1.5 0 0 1 2.1 2.1L6 12l-3 1 1-3 7.1-7.5z"/></svg>
                   </button>
                 </div>
@@ -259,9 +259,9 @@
                   <div class="urg-step" id="us4"></div>
                 </div>
                 <div class="urgency-pills" id="urgencyPills">
-                  <button class="urgency-pill-btn" data-urgency="Low" onclick="setUrgencyOverride('Low')">Low</button>
-                  <button class="urgency-pill-btn" data-urgency="Medium" onclick="setUrgencyOverride('Medium')">Med</button>
-                  <button class="urgency-pill-btn" data-urgency="High" onclick="setUrgencyOverride('High')">High</button>
+                  <button class="urgency-pill-btn" data-urgency="Low">Low</button>
+                  <button class="urgency-pill-btn" data-urgency="Medium">Med</button>
+                  <button class="urgency-pill-btn" data-urgency="High">High</button>
                 </div>
                 <div class="urgency-manual-label" id="urgencyManualLabel">Manually set</div>
               </div>
@@ -290,7 +290,7 @@
                 <h3>Suggested Reply</h3>
                 <div class="sub" id="replyToneSub">Professional tone</div>
                 <div class="spacer"></div>
-                <button class="reply-action" id="copyBtn" onclick="copyReply()">
+                <button class="reply-action" id="copyBtn">
                   <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="8" height="9" rx="1.5"/><path d="M3 5v8a1.5 1.5 0 0 0 1.5 1.5h7"/></svg>
                   <span id="copyLabel">Copy</span>
                 </button>
@@ -305,18 +305,18 @@
               <div class="tone-bar">
                 <span class="tone-label">Tone</span>
                 <div class="tone-pills">
-                  <button class="tone-pill active" data-tone="Professional" onclick="setTone('Professional')"><span class="swatch"></span>Professional</button>
-                  <button class="tone-pill" data-tone="Friendly" onclick="setTone('Friendly')"><span class="swatch"></span>Friendly</button>
-                  <button class="tone-pill" data-tone="Formal" onclick="setTone('Formal')"><span class="swatch"></span>Formal</button>
-                  <button class="tone-pill" data-tone="Concise" onclick="setTone('Concise')"><span class="swatch"></span>Concise</button>
-                  <button class="tone-pill" data-tone="Empathetic" onclick="setTone('Empathetic')"><span class="swatch"></span>Empathetic</button>
+                  <button class="tone-pill active" data-tone="Professional"><span class="swatch"></span>Professional</button>
+                  <button class="tone-pill" data-tone="Friendly"><span class="swatch"></span>Friendly</button>
+                  <button class="tone-pill" data-tone="Formal"><span class="swatch"></span>Formal</button>
+                  <button class="tone-pill" data-tone="Concise"><span class="swatch"></span>Concise</button>
+                  <button class="tone-pill" data-tone="Empathetic"><span class="swatch"></span>Empathetic</button>
                 </div>
                 <div class="tone-foot-actions">
                   <button class="btn-ghost" disabled title="Coming soon">
                     <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg>
                     Preview in Gmail
                   </button>
-                  <button class="btn-primary" onclick="copyReply()">
+                  <button class="btn-primary" id="useReplyBtn">
                     <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3H3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h3"/><path d="M10.5 11l3-3-3-3"/><path d="M13.5 8H6"/></svg>
                     Use this reply
                   </button>
@@ -326,7 +326,7 @@
 
             <!-- Excel export -->
             <div class="excel-export-wrap" id="excelExportWrap" style="display:none">
-              <button class="excel-export-btn" id="exportBtn" onclick="exportToExcel()">
+              <button class="excel-export-btn" id="exportBtn">
                 <div class="excel-icon-box">
                   <svg viewBox="0 0 22 22" width="20" height="20" fill="none">
                     <rect x="2" y="2" width="18" height="18" rx="3" stroke="white" stroke-width="1.4" stroke-opacity="0.5"/>
@@ -346,11 +346,11 @@
 
             <!-- Thread actions bar -->
             <div class="thread-actions-bar" id="threadActionsBar">
-              <button class="btn-ghost" onclick="startThread()">
+              <button class="btn-ghost" id="addReplyToThreadBtn">
                 <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.5a1.5 1.5 0 0 1 1.5-1.5h7a1.5 1.5 0 0 1 1.5 1.5v5a1.5 1.5 0 0 1-1.5 1.5H8l-3 2.5V11H4.5A1.5 1.5 0 0 1 3 9.5v-5z"/></svg>
                 Add Reply to Thread
               </button>
-              <button class="btn-ghost" onclick="newAnalysis()">
+              <button class="btn-ghost" id="threadActionsNewBtn">
                 <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8a5.5 5.5 0 0 1 9.5-3.8M13.5 8a5.5 5.5 0 0 1-9.5 3.8"/><path d="M11 1.5v3h-3M5 14.5v-3h3"/></svg>
                 New Analysis
               </button>
@@ -365,7 +365,7 @@
               <div class="thread-meta">
                 <span class="stars" id="threadCount">0 emails</span>
                 <span>·</span>
-                <button class="btn-ghost btn-sm" onclick="newAnalysis()">New Analysis</button>
+                <button class="btn-ghost btn-sm" id="threadHeadNewBtn">New Analysis</button>
               </div>
             </div>
 
@@ -386,15 +386,15 @@
               <div class="tone-bar" style="margin-top:10px;border-radius:8px;border:1px solid var(--border)">
                 <span class="tone-label">Tone</span>
                 <div class="tone-pills">
-                  <button class="tone-pill thread-tone-pill active" data-tone="Professional" onclick="setTone('Professional')"><span class="swatch"></span>Professional</button>
-                  <button class="tone-pill thread-tone-pill" data-tone="Friendly" onclick="setTone('Friendly')"><span class="swatch"></span>Friendly</button>
-                  <button class="tone-pill thread-tone-pill" data-tone="Formal" onclick="setTone('Formal')"><span class="swatch"></span>Formal</button>
-                  <button class="tone-pill thread-tone-pill" data-tone="Concise" onclick="setTone('Concise')"><span class="swatch"></span>Concise</button>
-                  <button class="tone-pill thread-tone-pill" data-tone="Empathetic" onclick="setTone('Empathetic')"><span class="swatch"></span>Empathetic</button>
+                  <button class="tone-pill thread-tone-pill active" data-tone="Professional"><span class="swatch"></span>Professional</button>
+                  <button class="tone-pill thread-tone-pill" data-tone="Friendly"><span class="swatch"></span>Friendly</button>
+                  <button class="tone-pill thread-tone-pill" data-tone="Formal"><span class="swatch"></span>Formal</button>
+                  <button class="tone-pill thread-tone-pill" data-tone="Concise"><span class="swatch"></span>Concise</button>
+                  <button class="tone-pill thread-tone-pill" data-tone="Empathetic"><span class="swatch"></span>Empathetic</button>
                 </div>
               </div>
               <div style="display:flex;justify-content:flex-end;margin-top:10px">
-                <button class="btn-primary" id="threadAnalyseBtn" onclick="analyseThreadEmail()">
+                <button class="btn-primary" id="threadAnalyseBtn">
                   <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5l1.2 3.3L12.5 7l-3.3 1.2L8 11.5 6.8 8.2 3.5 7l3.3-1.2L8 2.5z"/></svg>
                   <span id="threadBtnLabel">Analyse Reply</span>
                   <div class="btn-spinner" id="threadSpinner" style="display:none"></div>
@@ -1561,6 +1561,46 @@ document.addEventListener('keydown', function(e) {
     }
   }
 });
+
+/* ── Event wiring (CSP-safe: replaces all inline onclick/oninput) ── */
+(function wireEvents() {
+  function on(id, ev, fn) { document.getElementById(id)?.addEventListener(ev, fn); }
+  function qsa(sel, ev, fn) { document.querySelectorAll(sel).forEach(el => el.addEventListener(ev, fn)); }
+
+  on('backdrop', 'click', closeSidebar);
+  document.querySelector('.mobile-menu-btn')?.addEventListener('click', toggleSidebar);
+
+  on('themeLight', 'click', () => setTheme('light'));
+  on('themeDark',  'click', () => setTheme('dark'));
+
+  on('modeAnalyse', 'click', resetAll);
+  on('modeThread',  'click', startThread);
+
+  on('wsExportBtn', 'click', exportToExcel);
+  on('wsCloseBtn',  'click', resetAll);
+
+  on('sbNewBtn',       'click', newAnalysis);
+  on('searchInput',    'input', onSearchInput);
+  on('searchClear',    'click', clearSearch);
+  on('clearHistoryBtn','click', clearHistory);
+  qsa('.filter-btn', 'click', e => setFilter(e.currentTarget.dataset.filter));
+
+  on('analyseBtn', 'click', analyse);
+
+  on('urgencyOverrideBtn', 'click', openUrgencyOverride);
+  qsa('.urgency-pill-btn', 'click', e => setUrgencyOverride(e.currentTarget.dataset.urgency));
+
+  on('copyBtn',     'click', copyReply);
+  on('useReplyBtn', 'click', copyReply);
+  qsa('.tone-pill', 'click', e => setTone(e.currentTarget.dataset.tone));
+
+  on('exportBtn', 'click', exportToExcel);
+
+  on('addReplyToThreadBtn',  'click', startThread);
+  on('threadActionsNewBtn',  'click', newAnalysis);
+  on('threadHeadNewBtn',     'click', newAnalysis);
+  on('threadAnalyseBtn',     'click', analyseThreadEmail);
+})();
 
 loadHistory();
 </script>
