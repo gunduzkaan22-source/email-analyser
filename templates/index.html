@@ -67,33 +67,45 @@
         </button>
       </div>
 
-      <div class="sb-tabs">
-        <button class="sb-tab filter-btn active" data-filter="all" onclick="setFilter('all')">
-          All <span class="count" id="cnt-all"></span>
-        </button>
-        <button class="sb-tab filter-btn" data-filter="high" onclick="setFilter('high')">
-          High <span class="count" id="cnt-high"></span>
-        </button>
-        <button class="sb-tab filter-btn" data-filter="medium" onclick="setFilter('medium')">
-          Med <span class="count" id="cnt-medium"></span>
-        </button>
-        <button class="sb-tab filter-btn" data-filter="low" onclick="setFilter('low')">
-          Low <span class="count" id="cnt-low"></span>
+      <div class="sb-search-wrap">
+        <span class="sb-search-ico">
+          <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.5" cy="6.5" r="3.5"/><path d="M9.5 9.5l3 3"/></svg>
+        </span>
+        <input type="search" id="searchInput" class="sb-search" placeholder="Search history…" oninput="onSearchInput()" autocomplete="off" spellcheck="false" />
+        <button class="sb-search-clear" id="searchClear" onclick="clearSearch()" aria-label="Clear search" title="Clear">
+          <svg viewBox="0 0 16 16" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
         </button>
       </div>
 
-      <div class="sb-search-wrap">
-        <input type="search" id="searchInput" class="sb-search-input" placeholder="Search analyses…" oninput="onSearchInput()" autocomplete="off" />
-        <button class="sb-search-clear" id="searchClear" onclick="clearSearch()" aria-label="Clear search" title="Clear">
-          <svg viewBox="0 0 16 16" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+      <div class="sb-pills">
+        <button class="sb-pill filter-btn active" data-filter="all" onclick="setFilter('all')">
+          All <span class="sb-pill-count" id="cnt-all"></span>
+        </button>
+        <button class="sb-pill filter-btn lvl-high" data-filter="high" onclick="setFilter('high')">
+          <span class="sb-pill-dot"></span>High <span class="sb-pill-count" id="cnt-high"></span>
+        </button>
+        <button class="sb-pill filter-btn lvl-med" data-filter="medium" onclick="setFilter('medium')">
+          <span class="sb-pill-dot"></span>Med <span class="sb-pill-count" id="cnt-medium"></span>
+        </button>
+        <button class="sb-pill filter-btn lvl-low" data-filter="low" onclick="setFilter('low')">
+          <span class="sb-pill-dot"></span>Low <span class="sb-pill-count" id="cnt-low"></span>
         </button>
       </div>
 
       <div class="sb-list" id="historyList"></div>
 
-      <div class="sb-empty" id="historyEmpty">
-        <svg viewBox="0 0 16 16" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 9.5l1.2-5.5a1.5 1.5 0 0 1 1.5-1.2h5.6a1.5 1.5 0 0 1 1.5 1.2l1.2 5.5"/><path d="M2.5 9.5h3l1 2h3l1-2h3v2.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2.5 12V9.5z"/></svg>
-        <p id="historyEmptyMsg">Your analyses will<br>appear here</p>
+      <div class="sb-empty" id="historyEmpty" style="display:none">
+        <div class="sb-empty-art" aria-hidden="true">
+          <svg viewBox="0 0 80 64" width="80" height="64" fill="none">
+            <rect x="6" y="14" width="68" height="42" rx="6" stroke="var(--border-strong)" stroke-width="1.2" fill="var(--bg-1)"/>
+            <path d="M6 18 L40 38 L74 18" stroke="var(--border-strong)" stroke-width="1.2" fill="none" stroke-linejoin="round"/>
+            <circle cx="58" cy="14" r="9" stroke="var(--teal)" stroke-width="1.4" fill="var(--bg-0)"/>
+            <path d="M64 20 L70 26" stroke="var(--teal)" stroke-width="1.6" stroke-linecap="round"/>
+            <path d="M53 14 H63 M58 9 V19" stroke="var(--teal-dim)" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+          </svg>
+        </div>
+        <div class="sb-empty-title" id="historyEmptyTitle">No analyses yet</div>
+        <div class="sb-empty-sub" id="historyEmptyMsg">Your analyses will appear here</div>
       </div>
 
       <div class="sb-foot">
@@ -202,7 +214,7 @@
                   </span>
                   Action Items
                 </div>
-                <ul class="action-list" id="actionList"></ul>
+                <div class="action-list" id="actionList"></div>
               </div>
 
               <!-- Mood card -->
@@ -391,6 +403,7 @@ let currentThread       = [];
 let isThreadMode        = false;
 let lastAnalysisResult  = null;
 let searchQuery         = '';
+let doneActions         = new Set();
 
 /* ── Helpers ── */
 function escHtml(str) {
@@ -550,18 +563,22 @@ function renderResults(data) {
 
   document.getElementById('summaryVal').textContent = data.summary || '';
 
+  doneActions = new Set();
   const list = document.getElementById('actionList');
   list.innerHTML = '';
-  (data.action_items || []).forEach(item => {
-    const li = document.createElement('li');
-    const check = document.createElement('span');
+  (data.action_items || []).forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'action';
+    div.dataset.idx = i;
+    const check = document.createElement('div');
     check.className = 'action-check';
     check.innerHTML = '<svg viewBox="0 0 16 16" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.2L6.5 11l6-6.5"/></svg>';
     const text = document.createElement('span');
+    text.className = 'action-text';
     text.textContent = item;
-    li.appendChild(check);
-    li.appendChild(text);
-    list.appendChild(li);
+    div.appendChild(check);
+    div.appendChild(text);
+    list.appendChild(div);
   });
 
   document.getElementById('replyVal').textContent = data.suggested_reply || '';
@@ -1052,25 +1069,17 @@ function renderHistory() {
 
   if (filtered.length === 0) {
     list.innerHTML = '';
-    const msg = document.getElementById('historyEmptyMsg');
-    if (msg) {
-      msg.innerHTML = '';
-      if (searchQuery) {
-        msg.appendChild(document.createTextNode('No analyses'));
-        msg.appendChild(document.createElement('br'));
-        msg.appendChild(document.createTextNode('match your search'));
-      } else if (activeFilter === 'all') {
-        msg.appendChild(document.createTextNode('Your analyses will'));
-        msg.appendChild(document.createElement('br'));
-        msg.appendChild(document.createTextNode('appear here'));
-      } else {
-        msg.appendChild(document.createTextNode('No '));
-        const strong = document.createElement('strong');
-        strong.textContent = activeFilter;
-        msg.appendChild(strong);
-        msg.appendChild(document.createElement('br'));
-        msg.appendChild(document.createTextNode('analyses yet'));
-      }
+    const title = document.getElementById('historyEmptyTitle');
+    const msg   = document.getElementById('historyEmptyMsg');
+    if (searchQuery) {
+      if (title) title.textContent = 'No results';
+      if (msg)   msg.textContent   = 'No analyses match your search';
+    } else if (activeFilter === 'all') {
+      if (title) title.textContent = 'No analyses yet';
+      if (msg)   msg.textContent   = 'Your analyses will appear here';
+    } else {
+      if (title) title.textContent = 'Nothing here';
+      if (msg)   msg.textContent   = 'No ' + activeFilter + ' analyses yet';
     }
     empty.style.display = 'flex';
     return;
@@ -1079,65 +1088,106 @@ function renderHistory() {
   empty.style.display = 'none';
   list.innerHTML = '';
   const frag = document.createDocumentFragment();
+  const badgeMap = { low: 'low', medium: 'med', high: 'high', critical: 'crit' };
+  const avatarGradients = {
+    high:     'linear-gradient(135deg, oklch(0.72 0.16 25),  oklch(0.58 0.18 12))',
+    medium:   'linear-gradient(135deg, oklch(0.78 0.14 65),  oklch(0.62 0.16 50))',
+    low:      'linear-gradient(135deg, oklch(0.72 0.12 195), oklch(0.55 0.10 215))',
+    critical: 'linear-gradient(135deg, oklch(0.68 0.20 20),  oklch(0.52 0.22 10))',
+  };
+
   filtered.forEach(item => {
-    const urgLow = (item.urgency || '').toLowerCase();
+    const urgLow  = (item.urgency || '').toLowerCase();
+    const preview = item.preview || '(empty)';
+    const words   = preview.replace(/[^a-zA-Z\s]/g, '').trim().split(/\s+/).filter(Boolean);
+    const initials = words.length >= 2
+      ? (words[0][0] + words[1][0]).toUpperCase()
+      : (preview.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase() || '?');
+    const avatarBg  = avatarGradients[urgLow] || 'linear-gradient(135deg, var(--bg-3), var(--bg-2))';
+    const snippet   = (item.data && item.data.summary) ? item.data.summary : preview;
+
     const div = document.createElement('div');
-    div.className = 'history-item' + (item.id === activeHistoryId ? ' active' : '');
+    div.className = 'sb-item' + (item.id === activeHistoryId ? ' active' : '');
     div.dataset.id = item.id;
 
-    const mainEl = document.createElement('div');
-    mainEl.className = 'history-item-main';
+    /* Avatar */
+    const avatar = document.createElement('div');
+    avatar.className = 'sb-avatar';
+    avatar.style.background = avatarBg;
+    avatar.textContent = initials;
 
-    const previewEl = document.createElement('div');
-    previewEl.className = 'history-preview';
+    /* Body */
+    const body = document.createElement('div');
+    body.className = 'sb-body';
+
+    const row1 = document.createElement('div');
+    row1.className = 'sb-row1';
+    const from = document.createElement('div');
+    from.className = 'sb-from';
     if (item.isThread) {
       const icon = document.createElement('span');
       icon.className = 'history-thread-icon';
       icon.textContent = item.threadCount;
-      previewEl.appendChild(icon);
+      from.appendChild(icon);
     }
-    previewEl.appendChild(document.createTextNode(item.preview || '(empty)'));
+    from.appendChild(document.createTextNode(preview));
+    const time = document.createElement('div');
+    time.className = 'sb-time';
+    time.textContent = formatDate(item.date);
+    row1.appendChild(from);
+    row1.appendChild(time);
 
-    const metaEl = document.createElement('div');
-    metaEl.className = 'history-meta';
-    const timeEl = document.createElement('span');
-    timeEl.className = 'history-time';
-    timeEl.textContent = formatDate(item.date);
-    metaEl.appendChild(timeEl);
+    const snip = document.createElement('div');
+    snip.className = 'sb-snip';
+    snip.textContent = snippet;
+
+    const meta = document.createElement('div');
+    meta.className = 'sb-meta';
     if (item.urgency) {
       const badge = document.createElement('span');
-      badge.className = 'history-badge ' + urgLow;
-      badge.textContent = item.urgency;
-      metaEl.appendChild(badge);
+      const bc    = badgeMap[urgLow] || urgLow;
+      badge.className = 'u-badge ' + bc;
+      const dot = document.createElement('span');
+      dot.className = 'dot';
+      badge.appendChild(dot);
+      badge.appendChild(document.createTextNode(item.urgency));
+      meta.appendChild(badge);
     }
 
-    mainEl.appendChild(previewEl);
-    mainEl.appendChild(metaEl);
-    div.appendChild(mainEl);
+    body.appendChild(row1);
+    body.appendChild(snip);
+    body.appendChild(meta);
 
-    const delBtn = document.createElement('button');
-    delBtn.className = 'history-delete-btn';
-    delBtn.title = 'Delete';
-    delBtn.setAttribute('aria-label', 'Delete analysis');
-    delBtn.innerHTML = '<svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.5h10M6 2.5h4M7 7v4M9 7v4"/><path d="M4 4.5l.7 8a1.5 1.5 0 0 0 1.5 1.5h3.6a1.5 1.5 0 0 0 1.5-1.5l.7-8"/></svg>';
-    div.appendChild(delBtn);
+    /* Trash */
+    const trash = document.createElement('button');
+    trash.className = 'sb-trash';
+    trash.title = 'Delete';
+    trash.setAttribute('aria-label', 'Delete analysis');
+    trash.innerHTML = '<svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.5h10M6 2.5h4M7 7v4M9 7v4"/><path d="M4 4.5l.7 8a1.5 1.5 0 0 0 1.5 1.5h3.6a1.5 1.5 0 0 0 1.5-1.5l.7-8"/></svg>';
 
+    /* Confirm overlay */
     const confirmEl = document.createElement('div');
-    confirmEl.className = 'history-delete-confirm';
-    const msgEl = document.createElement('span');
-    msgEl.className = 'hdc-msg';
-    msgEl.textContent = 'Delete this analysis?';
+    confirmEl.className = 'sb-confirm';
+    const confirmText = document.createElement('span');
+    confirmText.className = 'sb-confirm-text';
+    confirmText.textContent = 'Delete?';
+    const confirmActions = document.createElement('div');
+    confirmActions.className = 'sb-confirm-actions';
     const noBtn = document.createElement('button');
-    noBtn.className = 'hdc-btn hdc-no';
+    noBtn.className = 'sb-confirm-btn no';
     noBtn.textContent = 'No';
     const yesBtn = document.createElement('button');
-    yesBtn.className = 'hdc-btn hdc-yes';
+    yesBtn.className = 'sb-confirm-btn yes';
     yesBtn.textContent = 'Yes';
-    confirmEl.appendChild(msgEl);
-    confirmEl.appendChild(noBtn);
-    confirmEl.appendChild(yesBtn);
-    div.appendChild(confirmEl);
+    confirmActions.appendChild(noBtn);
+    confirmActions.appendChild(yesBtn);
+    confirmEl.appendChild(confirmText);
+    confirmEl.appendChild(confirmActions);
 
+    div.appendChild(avatar);
+    div.appendChild(body);
+    div.appendChild(trash);
+    div.appendChild(confirmEl);
     frag.appendChild(div);
   });
   list.appendChild(frag);
@@ -1213,7 +1263,7 @@ function clearSearch() {
 }
 
 function confirmDeleteHistoryItem(itemEl) {
-  document.querySelectorAll('.history-item.confirming').forEach(el => {
+  document.querySelectorAll('.sb-item.confirming').forEach(el => {
     if (el !== itemEl) el.classList.remove('confirming');
   });
   itemEl.classList.add('confirming');
@@ -1320,24 +1370,37 @@ function doLogout() { window.location.href = '/logout'; }
 })();
 
 document.getElementById('historyList').addEventListener('click', e => {
-  if (e.target.closest('.history-delete-btn')) {
-    const item = e.target.closest('.history-item');
+  if (e.target.closest('.sb-trash')) {
+    const item = e.target.closest('.sb-item');
     if (item) confirmDeleteHistoryItem(item);
     return;
   }
-  if (e.target.closest('.hdc-no')) {
-    const item = e.target.closest('.history-item');
+  if (e.target.closest('.sb-confirm-btn.no')) {
+    const item = e.target.closest('.sb-item');
     if (item) item.classList.remove('confirming');
     return;
   }
-  if (e.target.closest('.hdc-yes')) {
-    const item = e.target.closest('.history-item');
+  if (e.target.closest('.sb-confirm-btn.yes')) {
+    const item = e.target.closest('.sb-item');
     if (item && item.dataset.id) deleteHistoryItem(item.dataset.id);
     return;
   }
-  if (e.target.closest('.history-delete-confirm')) return;
-  const item = e.target.closest('.history-item');
+  if (e.target.closest('.sb-confirm')) return;
+  const item = e.target.closest('.sb-item');
   if (item && item.dataset.id) loadHistoryItem(item.dataset.id);
+});
+
+document.getElementById('actionList').addEventListener('click', e => {
+  const action = e.target.closest('.action');
+  if (!action) return;
+  const idx = action.dataset.idx;
+  if (doneActions.has(idx)) {
+    doneActions.delete(idx);
+    action.classList.remove('done');
+  } else {
+    doneActions.add(idx);
+    action.classList.add('done');
+  }
 });
 
 document.getElementById('threadTimeline').addEventListener('click', e => {
