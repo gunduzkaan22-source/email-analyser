@@ -244,7 +244,7 @@ def auth_session():
         email = (user.email or '').strip().lower()
         result = supabase_db.table('allowed_emails').select('email').eq('email', email).execute()
         if not result.data:
-            app.logger.warning('auth_session: non-invited user blocked: %s', email)
+            app.logger.warning('auth_session: non-invited user blocked')
             return jsonify({'ok': False}), 403
 
         session.permanent = True
@@ -264,6 +264,7 @@ def logout():
 
 @app.route('/me')
 @auth_required
+@limiter.limit("60 per hour")
 def me():
     return jsonify({'id': session.get('user_id', ''), 'email': session.get('user_email', '')})
 
@@ -383,7 +384,10 @@ def update_history_item(item_id):
     if 'isThread' in data:
         patch['is_thread'] = bool(data['isThread'])
     if 'threadCount' in data:
-        patch['thread_count'] = int(data.get('threadCount', 0))
+        try:
+            patch['thread_count'] = max(0, int(data.get('threadCount', 0)))
+        except (TypeError, ValueError):
+            pass
     if 'thread' in data:
         patch['thread_json'] = _cap_json(data.get('thread'))
     if not patch:

@@ -1,7 +1,7 @@
-anthropic
+anthropic>=0.97.0
 flask
 flask-limiter
 python-dotenv
 gunicorn
-supabase==2.4.6
+supabase>=2.4.6
 openpyxl
