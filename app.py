@@ -2,6 +2,7 @@ import os
 import json
 import uuid
 import re
+import datetime
 import anthropic
 from flask import Flask, render_template, request, jsonify, Response, stream_with_context, session
 from flask_limiter import Limiter
@@ -33,6 +34,8 @@ limiter = Limiter(
     app=app,
     default_limits=[],
 )
+
+_anthropic = anthropic.Anthropic()
 
 
 @app.errorhandler(429)
@@ -103,7 +106,8 @@ def get_history():
                 'urgencyOverride': row.get('urgency_override', False),
             })
         return jsonify(items)
-    except Exception:
+    except Exception as e:
+        app.logger.error('Supabase GET history failed: %s', e)
         return jsonify([])
 
 
@@ -114,19 +118,22 @@ def save_history():
     data = request.get_json() or {}
     new_id = str(uuid.uuid4())
     try:
+        _urgency_post = str(data.get('urgency', '')).lower().strip()
+        if _urgency_post not in _VALID_URGENCY:
+            _urgency_post = ''
         supabase_db.table('email_history').insert({
             'id':            new_id,
             'session_id':    _uid(),
             'preview':       (data.get('preview') or '')[:200],
-            'urgency':       data.get('urgency', ''),
+            'urgency':       _urgency_post,
             'email_text':    data.get('email', ''),
             'analysis_json': _cap_json(data.get('data')),
             'is_thread':     data.get('isThread', False),
             'thread_count':  data.get('threadCount', 0),
             'thread_json':   _cap_json(data.get('thread')),
         }).execute()
-    except Exception:
-        pass
+    except Exception as e:
+        app.logger.error('Supabase INSERT failed: %s', e)
     return jsonify({'id': new_id})
 
 
@@ -156,7 +163,9 @@ def update_history_item(item_id):
     data = request.get_json() or {}
     patch = {}
     if 'urgency' in data:
-        patch['urgency'] = data['urgency']
+        urgency_val = str(data['urgency']).lower().strip()
+        if urgency_val in ('low', 'medium', 'high'):
+            patch['urgency'] = urgency_val
     if 'urgencyOverride' in data:
         patch['urgency_override'] = bool(data['urgencyOverride'])
     if 'isThread' in data:
@@ -201,23 +210,140 @@ def _cap_email_text(text, max_words=3000):
     return ' '.join(words[:max_words]) + '\n\n[Note: email was truncated to 3000 words for processing.]'
 
 
+# ── Pre/post analysis hooks ──────────────────────────────────────────────────
+
+_INJECTION_RE = re.compile(
+    r'\b('
+    r'ignore\s+(all\s+)?(previous\s+)?instructions?'
+    r'|system\s+prompt'
+    r'|forget\s+(all\s+)?(previous\s+)?(instructions?|context)'
+    r'|disregard\s+(all\s+)?(previous\s+)?instructions?'
+    r'|new\s+instructions?'
+    r'|override\s+(all\s+)?instructions?'
+    r'|you\s+are\s+now\s+a'
+    r'|act\s+as\s+a?\s*different'
+    r'|jailbreak'
+    r')\b',
+    re.IGNORECASE,
+)
+
+_EMAIL_SIGNALS_RE = re.compile(
+    r'\b(dear|hi|hello|regards|sincerely|subject:|from:|to:|cc:|bcc:|'
+    r'thanks|thank\s+you|best\s+wishes|kind\s+regards|yours?\s+(sincerely|faithfully))\b',
+    re.IGNORECASE,
+)
+
+# PII patterns — UK-specific
+# Only redact when preceded by "sort code" to avoid matching DD-MM-YY dates
+_UK_SORT_CODE_RE  = re.compile(
+    r'(sort\s*code\s*:?\s*)(\d{2}-\d{2}-\d{2})',
+    re.IGNORECASE,
+)
+# Only redact 8-digit numbers that follow an explicit account-number label
+_UK_ACCOUNT_NO_RE = re.compile(
+    r'(account\s*(?:number|no\.?|num\.?|#)?\s*:?\s*)(\d{8})\b',
+    re.IGNORECASE,
+)
+_UK_PHONE_RE      = re.compile(r'(?:\+44|0044)[\s\-]?\d{10}|(?<!\d)0[1-9]\d{9}(?!\d)')
+
+_REQUIRED_FIELDS = frozenset({
+    'sender_mood', 'urgency', 'tone_scores', 'summary',
+    'action_items', 'suggested_reply', 'recommended_response_time',
+})
+_VALID_URGENCY = frozenset({'low', 'medium', 'high'})
+
+
+class _PreAnalyseRejected(Exception):
+    """Raised by _pre_analyse to signal a clean HTTP rejection."""
+    def __init__(self, message: str, status: int = 400):
+        self.message = message
+        self.status  = status
+
+
+def _pre_analyse(email_text: str) -> str:
+    """
+    Validate and sanitise email text before it is sent to Claude.
+    Returns the processed text on success.
+    Raises _PreAnalyseRejected with a client-safe message on rejection.
+    """
+    ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    token_estimate = int(len(email_text.split()) * 1.3)
+    app.logger.info('[pre-hook] ts=%s tokens~=%d', ts, token_estimate)
+
+    if _INJECTION_RE.search(email_text):
+        app.logger.warning('[pre-hook] Prompt injection attempt blocked at %s', ts)
+        raise _PreAnalyseRejected('Input rejected: possible prompt injection attempt detected.')
+
+    # Require at least one recognisable email signal or an @ address.
+    # Longer texts are accepted without a signal — they may be forwarded chains.
+    has_email_signal = '@' in email_text or bool(_EMAIL_SIGNALS_RE.search(email_text))
+    if not has_email_signal and len(email_text.split()) < 5:
+        raise _PreAnalyseRejected(
+            'Input does not appear to be an email. Please paste the full email text.'
+        )
+
+    # Strip PII before sending to Claude
+    processed = _UK_PHONE_RE.sub('[phone removed]', email_text)
+    processed = _UK_SORT_CODE_RE.sub(r'\1[sort code removed]', processed)
+    # Keep the label, redact only the 8-digit number itself
+    processed = _UK_ACCOUNT_NO_RE.sub(r'\1[account number removed]', processed)
+
+    return processed
+
+
+def _post_analyse(result: dict) -> dict:
+    """
+    Validate and enrich the parsed analysis dict.
+    Raises ValueError with a human-readable message if required fields are absent.
+    """
+    ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+    missing = _REQUIRED_FIELDS - result.keys()
+    if missing:
+        raise ValueError(f"Analysis response missing required fields: {', '.join(sorted(missing))}")
+
+    urgency_raw = str(result.get('urgency', '')).lower().strip()
+    if urgency_raw not in _VALID_URGENCY:
+        app.logger.warning('[post-hook] Unexpected urgency %r — normalising to low', urgency_raw)
+        urgency_raw = 'low'
+    result['urgency'] = urgency_raw
+
+    if urgency_raw == 'high':
+        result['urgent_alert'] = True
+
+    app.logger.info('[post-hook] ts=%s urgency=%s', ts, urgency_raw)
+    return result
+
+
+# ────────────────────────────────────────────────────────────────────────────
+
 @app.route('/analyse', methods=['POST'])
 @limiter.limit("20 per hour")
 def analyse():
     data = request.get_json()
     email_text = (data or {}).get('email', '').strip()
-    tone = (data or {}).get('tone', 'Professional').strip() or 'Professional'
-    name = (data or {}).get('name', '').strip()
+    _raw_tone = (data or {}).get('tone', 'Professional').strip()
+    tone = _raw_tone if _raw_tone in TONE_GUIDES else 'Professional'
+    name = str((data or {}).get('name', '') or '')[:50].strip()
+    # Reject name values that carry injection patterns
+    if _INJECTION_RE.search(name):
+        name = ''
 
     if not email_text:
         return jsonify({'error': 'No email provided'}), 400
 
     email_text = _cap_email_text(email_text)
+
+    # Pre-hook: injection check, email validation, PII strip
+    try:
+        email_text = _pre_analyse(email_text)
+    except _PreAnalyseRejected as exc:
+        return jsonify({'error': exc.message}), exc.status
+
     tone_guide = TONE_GUIDES.get(tone, TONE_GUIDES["Professional"])
     sign_off = f" Sign off the reply with the name: {name}." if name else ""
 
-    client = anthropic.Anthropic()
-    response = client.messages.create(
+    response = _anthropic.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=1024,
         temperature=0,
@@ -258,9 +384,18 @@ def analyse():
     raw = response.content[0].text
     cleaned = raw.replace("```json", "").replace("```", "").strip()
     try:
-        return jsonify(json.loads(cleaned))
+        result = json.loads(cleaned)
     except (json.JSONDecodeError, ValueError):
         return jsonify({'error': 'Analysis failed — unexpected response format. Please try again.'}), 500
+
+    # Post-hook: field validation, urgency normalisation, urgent_alert flag
+    try:
+        result = _post_analyse(result)
+    except ValueError as e:
+        app.logger.error('[post-hook] Validation failed: %s', e)
+        return jsonify({'error': 'Analysis produced an incomplete result. Please try again.'}), 500
+
+    return jsonify(result)
 
 
 @app.route('/analyse-thread', methods=['POST'])
@@ -268,31 +403,55 @@ def analyse():
 def analyse_thread():
     data = request.get_json()
     thread = (data or {}).get('thread', [])
+    if not isinstance(thread, list):
+        thread = []
     email_text = (data or {}).get('email', '').strip()
-    tone = (data or {}).get('tone', 'Professional').strip() or 'Professional'
-    name = (data or {}).get('name', '').strip()
+    _raw_tone = (data or {}).get('tone', 'Professional').strip()
+    tone = _raw_tone if _raw_tone in TONE_GUIDES else 'Professional'
+    name = str((data or {}).get('name', '') or '')[:50].strip()
+    # Reject name values that carry injection patterns
+    if _INJECTION_RE.search(name):
+        name = ''
 
     if not email_text:
         return jsonify({'error': 'No email provided'}), 400
 
     email_text = _cap_email_text(email_text)
+
+    # Pre-hook: injection check, email validation, PII strip
+    try:
+        email_text = _pre_analyse(email_text)
+    except _PreAnalyseRejected as exc:
+        return jsonify({'error': exc.message}), exc.status
+
     tone_guide = TONE_GUIDES.get(tone, TONE_GUIDES["Professional"])
     sign_off = f" Sign off the reply with the name: {name}." if name else ""
 
     thread_context = ""
     for i, item in enumerate(thread[-5:], 1):
-        prev_summary = item.get('analysis', {}).get('summary', '')
-        prev_urgency = item.get('analysis', {}).get('urgency', '')
-        prev_sender  = item.get('analysis', {}).get('sender', f'Sender {i}')
-        prev_email   = _cap_email_text(item.get('email', ''), max_words=300)
+        prev_summary = str(item.get('analysis', {}).get('summary', ''))[:500]
+        _raw_urg    = str(item.get('analysis', {}).get('urgency', '')).lower().strip()
+        prev_urgency = _raw_urg if _raw_urg in _VALID_URGENCY else 'unknown'
+        prev_sender  = str(item.get('analysis', {}).get('sender', f'Sender {i}'))[:100]
+        prev_email   = _cap_email_text(str(item.get('email', '') or ''), max_words=300)
+        # Screen all thread content for injection before it enters the prompt
+        if _INJECTION_RE.search(prev_email):
+            prev_email = '[content redacted: injection pattern detected]'
+        if _INJECTION_RE.search(prev_summary):
+            prev_summary = '[summary redacted]'
+        if _INJECTION_RE.search(prev_sender):
+            prev_sender = f'Sender {i}'
+        # Strip PII from historical email content
+        prev_email = _UK_PHONE_RE.sub('[phone removed]', prev_email)
+        prev_email = _UK_SORT_CODE_RE.sub(r'\1[sort code removed]', prev_email)
+        prev_email = _UK_ACCOUNT_NO_RE.sub(r'\1[account number removed]', prev_email)
         thread_context += (
             f"[Email {i}] From: {prev_sender} | Urgency: {prev_urgency}\n"
             f"Summary: {prev_summary}\n"
             f"Content: {prev_email}\n\n"
         )
 
-    client = anthropic.Anthropic()
-    response = client.messages.create(
+    response = _anthropic.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=1024,
         temperature=0,
@@ -335,30 +494,48 @@ def analyse_thread():
     raw = response.content[0].text
     cleaned = raw.replace("```json", "").replace("```", "").strip()
     try:
-        return jsonify(json.loads(cleaned))
+        result = json.loads(cleaned)
     except (json.JSONDecodeError, ValueError):
         return jsonify({'error': 'Analysis failed — unexpected response format. Please try again.'}), 500
 
+    # Post-hook: field validation, urgency normalisation, urgent_alert flag
+    try:
+        result = _post_analyse(result)
+    except ValueError as e:
+        app.logger.error('[post-hook] Validation failed: %s', e)
+        return jsonify({'error': 'Analysis produced an incomplete result. Please try again.'}), 500
+
+    return jsonify(result)
+
 
 @app.route('/regenerate-reply', methods=['POST'])
+@limiter.limit("20 per hour")
 def regenerate_reply():
     data = request.get_json()
     email_text = (data or {}).get('email', '').strip()
-    tone = (data or {}).get('tone', 'Professional').strip() or 'Professional'
-    name = (data or {}).get('name', '').strip()
+    _raw_tone = (data or {}).get('tone', 'Professional').strip()
+    tone = _raw_tone if _raw_tone in TONE_GUIDES else 'Professional'
+    name = str((data or {}).get('name', '') or '')[:50].strip()
+    # Reject name values that carry injection patterns
+    if _INJECTION_RE.search(name):
+        name = ''
 
     if not email_text:
         return jsonify({'error': 'No email provided'}), 400
 
     email_text = _cap_email_text(email_text)
+
+    try:
+        email_text = _pre_analyse(email_text)
+    except _PreAnalyseRejected as exc:
+        return jsonify({'error': exc.message}), exc.status
+
     tone_guide = TONE_GUIDES.get(tone, TONE_GUIDES["Professional"])
     sign_off = f" Sign off with the name: {name}." if name else ""
 
-    client = anthropic.Anthropic()
-
     def generate():
         try:
-            with client.messages.stream(
+            with _anthropic.messages.stream(
                 model="claude-haiku-4-5-20251001",
                 max_tokens=512,
                 system=(
@@ -392,7 +569,8 @@ def regenerate_reply():
                     yield f"data: {json.dumps({'chunk': text})}\n\n"
             yield "data: [DONE]\n\n"
         except Exception as e:
-            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+            app.logger.error('Reply stream error: %s', e)
+            yield f"data: {json.dumps({'error': 'Reply generation failed. Please try again.'})}\n\n"
 
     return Response(
         stream_with_context(generate()),
