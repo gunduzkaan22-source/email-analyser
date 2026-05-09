@@ -169,6 +169,11 @@
               <h2>Analysis</h2>
               <span class="rdot"></span>
               <span class="ts" id="analysisTs"></span>
+              <div class="topnav-spacer"></div>
+              <button class="btn-ghost btn-sm" id="exportBtn" onclick="exportToExcel()" style="display:none">
+                <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8M5 7l3 3 3-3"/><path d="M3 12h10"/></svg>
+                Export
+              </button>
             </div>
 
             <div class="grid">
@@ -359,6 +364,7 @@ let replyCache          = {};
 let urgencyOverrideOpen = false;
 let currentThread       = [];
 let isThreadMode        = false;
+let lastAnalysisResult  = null;
 
 /* ── Helpers ── */
 function escHtml(str) {
@@ -422,7 +428,9 @@ async function analyse() {
     currentThread = [{ email, analysis: data, date: new Date().toISOString() }];
     isThreadMode  = false;
 
+    lastAnalysisResult = { data, email };
     renderResults(data);
+    document.getElementById('exportBtn').style.display = '';
     activeHistoryId = await saveToHistory(email, data);
     activeFilter = 'all';
     renderHistory();
@@ -652,8 +660,10 @@ function resetAll() {
   document.getElementById('urgencyPills').classList.remove('open');
   document.getElementById('urgencyManualLabel').classList.remove('visible');
   document.querySelectorAll('.urgency-pill-btn').forEach(p => p.classList.remove('selected'));
+  document.getElementById('exportBtn').style.display = 'none';
   urgencyOverrideOpen = false;
   activeHistoryId = null;
+  lastAnalysisResult = null;
   currentThread = [];
   isThreadMode  = false;
   document.getElementById('threadActionsBar').classList.remove('visible');
@@ -904,6 +914,35 @@ async function saveThreadToHistory() {
   activeHistoryId = fallbackId;
 }
 
+/* ── Export ── */
+async function exportToExcel() {
+  if (!lastAnalysisResult) { showToast('No analysis to export.'); return; }
+  const btn = document.getElementById('exportBtn');
+  btn.disabled = true;
+  try {
+    const res = await fetch('/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ analysis: lastAnalysisResult.data, email: lastAnalysisResult.email })
+    });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Export failed.'); }
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'maillens-analysis-' + new Date().toISOString().slice(0, 10) + '.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Exported successfully');
+  } catch (err) {
+    showToast(err.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 /* ── History ── */
 async function loadHistory() {
   try {
@@ -1039,6 +1078,8 @@ function loadHistoryItem(id) {
     currentThread = item.thread.map(t => ({ email: t.email, analysis: t.analysis, date: t.date }));
     isThreadMode  = true;
     currentEmail  = currentThread[0]?.email || '';
+    lastAnalysisResult = null;
+    document.getElementById('exportBtn').style.display = 'none';
     document.getElementById('results').classList.remove('visible');
     renderThreadView();
     document.getElementById('threadView').classList.add('visible');
@@ -1048,6 +1089,8 @@ function loadHistoryItem(id) {
     currentThread = item.email ? [{ email: item.email, analysis: item.data, date: item.date }] : [];
     isThreadMode  = false;
     currentEmail  = item.email || '';
+    lastAnalysisResult = { data: item.data, email: item.email || '' };
+    document.getElementById('exportBtn').style.display = '';
     renderResults(item.data);
 
     if (item.urgencyOverride) {

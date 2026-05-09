@@ -4,11 +4,18 @@ import uuid
 import re
 import datetime
 from functools import wraps
+from io import BytesIO
 import anthropic
 from flask import (
     Flask, render_template, render_template_string, request, jsonify,
     Response, stream_with_context, session, redirect,
 )
+try:
+    import openpyxl
+    from openpyxl.styles import PatternFill, Font, Alignment
+    _openpyxl_available = True
+except ImportError:
+    _openpyxl_available = False
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
@@ -772,6 +779,160 @@ def regenerate_reply():
         stream_with_context(generate()),
         mimetype='text/event-stream',
         headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'},
+    )
+
+
+@app.route('/export', methods=['POST'])
+@auth_required
+@limiter.limit("20 per hour")
+def export_excel():
+    if not _openpyxl_available:
+        return jsonify({'error': 'Export unavailable — openpyxl not installed.'}), 503
+
+    payload  = request.get_json() or {}
+    analysis = payload.get('analysis') or {}
+    email_text = str(payload.get('email') or '')[:50_000]
+
+    if not analysis:
+        return jsonify({'error': 'No analysis data provided.'}), 400
+
+    now          = datetime.datetime.now()
+    date_str     = now.strftime('%Y-%m-%d')
+    datetime_str = now.strftime('%Y-%m-%d %H:%M')
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Email Analysis'
+
+    ws.column_dimensions['A'].width = 22
+    ws.column_dimensions['B'].width = 70
+
+    navy_fill  = PatternFill('solid', fgColor='1A1D28')
+    teal_fill  = PatternFill('solid', fgColor='00B4C8')
+    lteal_fill = PatternFill('solid', fgColor='E0F7FA')
+    dark_fill  = PatternFill('solid', fgColor='23263A')
+    row_fill   = PatternFill('solid', fgColor='12151F')
+    alt_fill   = PatternFill('solid', fgColor='1E2136')
+
+    center = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    left   = Alignment(horizontal='left',   vertical='top',    wrap_text=True)
+    mid    = Alignment(horizontal='left',   vertical='center')
+
+    row = 1
+
+    ws.merge_cells(f'A{row}:B{row}')
+    c = ws[f'A{row}']
+    c.value     = 'MailLens — Email Analysis Report'
+    c.fill      = navy_fill
+    c.font      = Font(color='4BC8D4', bold=True, name='Calibri', size=14)
+    c.alignment = center
+    ws.row_dimensions[row].height = 30
+    row += 1
+
+    ws.merge_cells(f'A{row}:B{row}')
+    c = ws[f'A{row}']
+    c.value     = f'Exported: {datetime_str}'
+    c.fill      = dark_fill
+    c.font      = Font(color='888888', italic=True, name='Calibri', size=9)
+    c.alignment = center
+    ws.row_dimensions[row].height = 16
+    row += 1
+
+    ws.merge_cells(f'A{row}:B{row}')
+    ws[f'A{row}'].fill = navy_fill
+    ws.row_dimensions[row].height = 6
+    row += 1
+
+    ws.merge_cells(f'A{row}:B{row}')
+    c = ws[f'A{row}']
+    c.value     = 'METADATA'
+    c.fill      = teal_fill
+    c.font      = Font(color='FFFFFF', bold=True, name='Calibri', size=11)
+    c.alignment = center
+    ws.row_dimensions[row].height = 20
+    row += 1
+
+    def add_meta_row(label, value, fill):
+        nonlocal row
+        a, b = ws[f'A{row}'], ws[f'B{row}']
+        a.value, a.font, a.alignment, a.fill = label, Font(color='9BA3BF', bold=True, name='Calibri', size=10), mid, fill
+        b.value, b.font, b.alignment, b.fill = str(value or '—'), Font(color='E8EAF0', name='Calibri', size=10), left, fill
+        ws.row_dimensions[row].height = 15
+        row += 1
+
+    add_meta_row('Date Analysed',         datetime_str,                                         row_fill)
+    add_meta_row('Urgency',               (analysis.get('urgency') or '').capitalize(),          alt_fill)
+    add_meta_row('Sender Mood',           analysis.get('sender_mood') or '—',               row_fill)
+    add_meta_row('Recommended Response',  analysis.get('recommended_response_time') or '—', alt_fill)
+
+    ws.merge_cells(f'A{row}:B{row}')
+    ws[f'A{row}'].fill = navy_fill
+    ws.row_dimensions[row].height = 8
+    row += 1
+
+    def add_section(title, content, content_height):
+        nonlocal row
+        ws.merge_cells(f'A{row}:B{row}')
+        c = ws[f'A{row}']
+        c.value, c.fill, c.alignment = title, lteal_fill, mid
+        c.font = Font(color='006064', bold=True, name='Calibri', size=10)
+        ws.row_dimensions[row].height = 18
+        row += 1
+        ws.merge_cells(f'A{row}:B{row}')
+        c = ws[f'A{row}']
+        c.value, c.fill, c.alignment = content, row_fill, left
+        c.font = Font(color='E8EAF0', name='Calibri', size=10)
+        ws.row_dimensions[row].height = content_height
+        row += 1
+        ws.merge_cells(f'A{row}:B{row}')
+        ws[f'A{row}'].fill = navy_fill
+        ws.row_dimensions[row].height = 4
+        row += 1
+
+    summary = str(analysis.get('summary') or '')[:2000]
+    add_section('SUMMARY', summary, max(30, min(120, len(summary) // 3)))
+
+    action_items = analysis.get('action_items')
+    if not isinstance(action_items, list):
+        action_items = []
+    action_items = action_items[:50]
+    actions_text = '\n'.join(f'• {str(item)[:300]}' for item in action_items) if action_items else '—'
+    add_section('ACTION ITEMS', actions_text, max(20, len(action_items) * 16))
+
+    suggested_reply = str(analysis.get('suggested_reply') or '')[:5000].replace('\\n', '\n')
+    add_section('SUGGESTED REPLY', suggested_reply, max(60, min(240, len(suggested_reply) // 3)))
+
+    add_section('ORIGINAL EMAIL', email_text, max(60, min(300, len(email_text) // 4)))
+
+    tone_scores = analysis.get('tone_scores')
+    if not isinstance(tone_scores, dict):
+        tone_scores = {}
+    if tone_scores:
+        ws.merge_cells(f'A{row}:B{row}')
+        c = ws[f'A{row}']
+        c.value, c.fill, c.alignment = 'TONE SCORES', lteal_fill, mid
+        c.font = Font(color='006064', bold=True, name='Calibri', size=10)
+        ws.row_dimensions[row].height = 18
+        row += 1
+        for i, (k, v) in enumerate(tone_scores.items()):
+            fill = row_fill if i % 2 == 0 else alt_fill
+            try:
+                pct = f'{round(float(v) * 100)}%'
+            except (TypeError, ValueError):
+                pct = '—'
+            add_meta_row(str(k)[:50].capitalize(), pct, fill)
+
+    ws.freeze_panes = 'A5'
+
+    buf = BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    filename = f'maillens-analysis-{date_str}.xlsx'
+    return Response(
+        buf.getvalue(),
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        headers={'Content-Disposition': f'attachment; filename="{filename}"'},
     )
 
 
