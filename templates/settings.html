@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MailLens — Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="/static/style.css" />
+  <script>
+    (function(){var t=localStorage.getItem('maillens.theme')||'dark';document.documentElement.setAttribute('data-theme',t)})();
+  </script>
+</head>
+<body>
+
+<div class="settings-wrap">
+
+  <a href="/" class="settings-back">
+    <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3L5 8l5 5"/></svg>
+    Back to MailLens
+  </a>
+
+  <h1 class="settings-title">Settings</h1>
+  <p class="settings-subtitle">Manage your account and data.</p>
+
+  <!-- Account info -->
+  <div class="settings-card">
+    <div class="settings-card-header">Account</div>
+    <div class="settings-row">
+      <span class="settings-row-label">Email</span>
+      <span class="settings-row-value">{{ user_email }}</span>
+    </div>
+    {% if created_at %}
+    <div class="settings-row">
+      <span class="settings-row-label">Member since</span>
+      <span class="settings-row-value">{{ created_at }}</span>
+    </div>
+    {% endif %}
+    <div class="settings-row">
+      <span class="settings-row-label">Analyses run</span>
+      <span class="settings-row-value">{{ analysis_count }}</span>
+    </div>
+  </div>
+
+  <!-- Data actions -->
+  <div class="settings-card">
+    <div class="settings-card-header">Your data</div>
+    <button class="settings-action-btn" id="exportBtn" onclick="exportData()">
+      <div class="settings-action-icon teal">
+        <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9"/><path d="M5 8l3 3 3-3"/><rect x="2" y="12" width="12" height="2" rx="1"/></svg>
+      </div>
+      <div class="settings-action-text">
+        <span class="settings-action-label">Export all my data</span>
+        <span class="settings-action-sub">Download all your analyses as an Excel file (GDPR data portability)</span>
+      </div>
+    </button>
+  </div>
+
+  <!-- Danger zone -->
+  <div class="settings-card">
+    <div class="settings-card-header">Danger zone</div>
+    <button class="settings-action-btn danger" onclick="openDeleteModal()">
+      <div class="settings-action-icon red">
+        <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,4 13,4"/><path d="M6 4V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1"/><path d="M5 4l.8 9h4.4l.8-9"/><line x1="8" y1="7" x2="8" y2="11"/></svg>
+      </div>
+      <div class="settings-action-text">
+        <span class="settings-action-label">Delete my account</span>
+        <span class="settings-action-sub">Permanently delete your account and all your analysis history</span>
+      </div>
+    </button>
+  </div>
+
+</div>
+
+<!-- Delete confirmation modal -->
+<div class="delete-modal-backdrop" id="deleteModalBackdrop" onclick="handleBackdropClick(event)">
+  <div class="delete-modal">
+    <div class="delete-modal-icon">
+      <svg viewBox="0 0 16 16" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,4 13,4"/><path d="M6 4V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1"/><path d="M5 4l.8 9h4.4l.8-9"/><line x1="8" y1="7" x2="8" y2="11"/></svg>
+    </div>
+    <h3>Delete your account?</h3>
+    <p>This will permanently delete all your email analysis history and remove your account. This action cannot be undone.</p>
+    <div class="delete-modal-btns">
+      <button class="delete-cancel-btn" onclick="closeDeleteModal()">Cancel</button>
+      <button class="delete-confirm-btn" id="deleteConfirmBtn" onclick="confirmDelete()">Delete account</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function exportData() {
+    const btn = document.getElementById('exportBtn');
+    const label = btn.querySelector('.settings-action-label');
+    btn.disabled = true;
+    label.textContent = 'Preparing download…';
+
+    fetch('/account/export', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+      .then(res => {
+        if (!res.ok) return res.json().then(d => { throw new Error(d.error || 'Export failed'); });
+        return res.blob();
+      })
+      .then(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'maillens-data-export.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        label.textContent = 'Export all my data';
+        btn.disabled = false;
+      })
+      .catch(err => {
+        alert(err.message || 'Export failed. Please try again.');
+        label.textContent = 'Export all my data';
+        btn.disabled = false;
+      });
+  }
+
+  function openDeleteModal() {
+    document.getElementById('deleteModalBackdrop').classList.add('open');
+  }
+
+  function closeDeleteModal() {
+    document.getElementById('deleteModalBackdrop').classList.remove('open');
+  }
+
+  function handleBackdropClick(e) {
+    if (e.target === document.getElementById('deleteModalBackdrop')) closeDeleteModal();
+  }
+
+  function confirmDelete() {
+    const btn = document.getElementById('deleteConfirmBtn');
+    btn.disabled = true;
+    btn.textContent = 'Deleting…';
+
+    fetch('/account/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+      .then(res => res.json())
+      .then(data => {
+        if (data.ok) {
+          window.location.href = '/login';
+        } else {
+          alert(data.error || 'Failed to delete account. Please try again.');
+          btn.disabled = false;
+          btn.textContent = 'Delete account';
+        }
+      })
+      .catch(() => {
+        alert('Failed to delete account. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Delete account';
+      });
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeDeleteModal();
+  });
+</script>
+
+</body>
+</html>

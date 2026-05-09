@@ -954,6 +954,199 @@ def export_excel():
     )
 
 
+# ── Settings / account routes ─────────────────────────────────────────────────
+
+@app.route('/settings')
+@auth_required
+def settings():
+    uid = _uid()
+    email = session.get('user_email', '')
+    created_at = ''
+    analysis_count = 0
+
+    if supabase_db:
+        try:
+            user_resp = supabase_db.auth.admin.get_user_by_id(uid)
+            if user_resp and user_resp.user and user_resp.user.created_at:
+                raw = str(user_resp.user.created_at)
+                try:
+                    dt = datetime.datetime.fromisoformat(raw.replace('Z', '+00:00'))
+                    created_at = dt.strftime('%d %B %Y')
+                except ValueError:
+                    created_at = raw[:10]
+        except Exception as e:
+            app.logger.error('settings: get_user_by_id failed: %s', e)
+
+        try:
+            count_resp = (supabase_db.table('email_history')
+                          .select('id', count='exact')
+                          .eq('user_id', uid)
+                          .execute())
+            analysis_count = count_resp.count or 0
+        except Exception as e:
+            app.logger.error('settings: count query failed: %s', e)
+
+    return render_template('settings.html',
+                           user_email=email,
+                           created_at=created_at,
+                           analysis_count=analysis_count)
+
+
+@app.route('/account/delete', methods=['POST'])
+@auth_required
+@limiter.limit("5 per hour")
+def account_delete():
+    uid = _uid()
+    email = session.get('user_email', '').strip().lower()
+    if not supabase_db:
+        return jsonify({'error': 'Service unavailable.'}), 503
+    try:
+        supabase_db.auth.admin.delete_user(uid)
+    except Exception as e:
+        app.logger.error('account_delete: auth delete failed: %s', e)
+        return jsonify({'error': 'Failed to delete account.'}), 500
+    try:
+        supabase_db.table('email_history').delete().eq('user_id', uid).execute()
+    except Exception as e:
+        app.logger.error('account_delete: history delete failed: %s', e)
+    try:
+        if email:
+            supabase_db.table('allowed_emails').delete().eq('email', email).execute()
+    except Exception as e:
+        app.logger.error('account_delete: allowed_emails delete failed: %s', e)
+    session.clear()
+    return jsonify({'ok': True})
+
+
+@app.route('/account/export', methods=['POST'])
+@auth_required
+@limiter.limit("10 per hour")
+def account_export():
+    if not _openpyxl_available:
+        return jsonify({'error': 'Export unavailable — openpyxl not installed.'}), 503
+    if not supabase_db:
+        return jsonify({'error': 'Service unavailable.'}), 503
+
+    uid = _uid()
+    try:
+        result = (supabase_db.table('email_history')
+                  .select('*')
+                  .eq('user_id', uid)
+                  .order('created_at', desc=True)
+                  .limit(500)
+                  .execute())
+        rows = result.data or []
+    except Exception as e:
+        app.logger.error('account_export: query failed: %s', e)
+        return jsonify({'error': 'Failed to fetch data.'}), 500
+
+    now = datetime.datetime.now()
+    date_str = now.strftime('%Y-%m-%d')
+    datetime_str = now.strftime('%Y-%m-%d %H:%M')
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'My MailLens Data'
+
+    navy_fill  = PatternFill('solid', fgColor='1A1D28')
+    teal_fill  = PatternFill('solid', fgColor='00B4C8')
+    dark_fill  = PatternFill('solid', fgColor='23263A')
+    row_fill   = PatternFill('solid', fgColor='12151F')
+    alt_fill   = PatternFill('solid', fgColor='1E2136')
+
+    center = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    left   = Alignment(horizontal='left', vertical='top', wrap_text=True)
+    mid    = Alignment(horizontal='left', vertical='center')
+
+    col_widths = [22, 10, 12, 14, 50, 50, 50]
+    col_letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
+    for letter, width in zip(col_letters, col_widths):
+        ws.column_dimensions[letter].width = width
+
+    r = 1
+    ws.merge_cells(f'A{r}:G{r}')
+    c = ws[f'A{r}']
+    c.value     = 'MailLens — My Data Export (GDPR Data Portability)'
+    c.fill      = navy_fill
+    c.font      = Font(color='4BC8D4', bold=True, name='Calibri', size=14)
+    c.alignment = center
+    ws.row_dimensions[r].height = 30
+    r += 1
+
+    ws.merge_cells(f'A{r}:G{r}')
+    c = ws[f'A{r}']
+    c.value     = f'Exported: {datetime_str}  |  Total analyses: {len(rows)}'
+    c.fill      = dark_fill
+    c.font      = Font(color='888888', italic=True, name='Calibri', size=9)
+    c.alignment = center
+    ws.row_dimensions[r].height = 16
+    r += 1
+
+    ws.merge_cells(f'A{r}:G{r}')
+    ws[f'A{r}'].fill = navy_fill
+    ws.row_dimensions[r].height = 6
+    r += 1
+
+    headers = ['Date', 'Urgency', 'Sender Mood', 'Resp. Time', 'Summary', 'Action Items', 'Suggested Reply']
+    for col_idx, h in enumerate(headers, 1):
+        cell = ws.cell(row=r, column=col_idx)
+        cell.value     = h
+        cell.fill      = teal_fill
+        cell.font      = Font(color='FFFFFF', bold=True, name='Calibri', size=10)
+        cell.alignment = mid
+    ws.row_dimensions[r].height = 20
+    r += 1
+
+    for row_idx, row_data in enumerate(rows):
+        fill = row_fill if row_idx % 2 == 0 else alt_fill
+        aj = row_data.get('analysis_json') or {}
+
+        try:
+            raw_dt = str(row_data.get('created_at', ''))
+            dt = datetime.datetime.fromisoformat(raw_dt.replace('Z', '+00:00'))
+            date_val = dt.strftime('%Y-%m-%d %H:%M')
+        except (ValueError, AttributeError):
+            date_val = str(row_data.get('created_at', ''))[:16]
+
+        if not isinstance(aj, dict):
+            aj = {}
+        action_items = aj.get('action_items')
+        if not isinstance(action_items, list):
+            action_items = []
+        actions_text = '\n'.join(f'• {str(item)[:300]}' for item in action_items[:20]) if action_items else '—'
+
+        vals = [
+            date_val,
+            str(aj.get('urgency') or row_data.get('urgency') or '').capitalize(),
+            str(aj.get('sender_mood') or '—')[:200],
+            str(aj.get('recommended_response_time') or '—')[:100],
+            str(aj.get('summary') or '—')[:2000],
+            actions_text,
+            str(aj.get('suggested_reply') or '—')[:2000].replace('\\n', '\n'),
+        ]
+        for col_idx, val in enumerate(vals, 1):
+            cell = ws.cell(row=r, column=col_idx)
+            cell.value     = val
+            cell.fill      = fill
+            cell.font      = Font(color='E8EAF0', name='Calibri', size=9)
+            cell.alignment = left
+        ws.row_dimensions[r].height = 40
+        r += 1
+
+    ws.freeze_panes = 'A5'
+
+    buf = BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    filename = f'maillens-data-export-{date_str}.xlsx'
+    return Response(
+        buf.getvalue(),
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        headers={'Content-Disposition': f'attachment; filename="{filename}"'},
+    )
+
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port, threaded=True)
