@@ -380,7 +380,8 @@ textarea, input { font-family: inherit; }
 .tb-row { display: grid; grid-template-columns: 70px 1fr 32px; align-items: center; gap: 8px; }
 .tb-label { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-3); white-space: nowrap; }
 .tb { flex: 1; height: 4px; border-radius: 2px; background: var(--bg-2); overflow: hidden; position: relative; }
-.tb-fill { position: absolute; inset: 0 auto 0 0; border-radius: 2px; background: var(--neg); transition: width 0.4s ease; }
+.tb-fill { position: absolute; inset: 0 auto 0 0; border-radius: 2px; background: var(--neg); transition: width 0.65s cubic-bezier(0.4, 0, 0.2, 1); }
+.mood-tone-bars .tb-fill { background: var(--teal); }
 .tb-pct { font-family: var(--font-mono); font-size: 10px; color: var(--text-4); text-align: right; }
 
 /* ── Thread grid + right rail ── */

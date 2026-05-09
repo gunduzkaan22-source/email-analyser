@@ -524,6 +524,18 @@ def _post_analyse(result: dict) -> dict:
     if urgency_raw == 'high':
         result['urgent_alert'] = True
 
+    mood_scores = result.get('mood_scores')
+    if not isinstance(mood_scores, dict):
+        result['mood_scores'] = {}
+    else:
+        clamped = {}
+        for k, v in mood_scores.items():
+            try:
+                clamped[str(k)] = max(0, min(100, int(float(v))))
+            except (TypeError, ValueError):
+                clamped[str(k)] = 0
+        result['mood_scores'] = clamped
+
     app.logger.info('[post-hook] ts=%s urgency=%s', ts, urgency_raw)
     return result
 
@@ -574,6 +586,7 @@ def analyse():
                 "content": (
                     "Analyse this email and return a JSON object with these fields: "
                     "sender_mood (short phrase describing the sender's emotional tone), "
+                    "mood_scores (object with integer scores 0-100 for each of: professional, friendly, urgent, frustrated, formal — reflecting how strongly each quality is present in the sender's tone), "
                     "urgency (low/medium/high — use these exact criteria: high = a deadline is explicitly "
                     "mentioned, financial risk is present, or urgent/ASAP language is used; medium = a "
                     "response is expected but no hard deadline is given; low = informational or no action "
@@ -681,6 +694,7 @@ def analyse_thread():
                 "Analyse the latest email below and return a JSON object with these fields: "
                 "sender (name or identifier extracted from the email — e.g. 'Sarah' or 'support@acme.com'), "
                 "sender_mood (short phrase describing the sender's emotional tone), "
+                "mood_scores (object with integer scores 0-100 for each of: professional, friendly, urgent, frustrated, formal — reflecting how strongly each quality is present in the sender's tone), "
                 "urgency (low/medium/high — use these exact criteria: high = a deadline is explicitly "
                 "mentioned, financial risk is present, or urgent/ASAP language is used; medium = a "
                 "response is expected but no hard deadline is given; low = informational or no action "

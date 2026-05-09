@@ -201,7 +201,7 @@
                   <span class="ico">
                     <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="5.5"/><path d="M5.5 9.5s.8 1.5 2.5 1.5 2.5-1.5 2.5-1.5"/><circle cx="6" cy="6.5" r="0.5" fill="currentColor" stroke="none"/><circle cx="10" cy="6.5" r="0.5" fill="currentColor" stroke="none"/></svg>
                   </span>
-                  Tone
+                  Sender Mood
                 </div>
                 <div class="card-h1" id="moodVal">—</div>
                 <div class="mood-tone-bars" id="moodToneBars"></div>
@@ -470,24 +470,22 @@ async function analyse() {
 
 /* ── Render results ── */
 function renderResults(data) {
-  document.getElementById('moodVal').textContent = data.sender_mood || '—';
-
+  const moodEl     = document.getElementById('moodVal');
   const toneBarsEl = document.getElementById('moodToneBars');
-  const toneScores = data.tone_scores || {};
-  const toneKeys = ['frustration', 'urgency', 'formality', 'warmth'];
+  const moodScores = data.mood_scores;
   toneBarsEl.innerHTML = '';
-  toneKeys.filter(k => toneScores[k] !== undefined).forEach(k => {
-    const pct = Math.round((toneScores[k] || 0) * 100);
-    const row = document.createElement('div');
+
+  function buildBar(label, pct, animate) {
+    const row  = document.createElement('div');
     row.className = 'tb-row';
-    const lbl = document.createElement('span');
+    const lbl  = document.createElement('span');
     lbl.className = 'tb-label';
-    lbl.textContent = k.charAt(0).toUpperCase() + k.slice(1);
-    const bar = document.createElement('div');
+    lbl.textContent = label;
+    const bar  = document.createElement('div');
     bar.className = 'tb';
     const fill = document.createElement('div');
     fill.className = 'tb-fill';
-    fill.style.width = pct + '%';
+    fill.style.width = animate ? '0%' : pct + '%';
     bar.appendChild(fill);
     const pctSpan = document.createElement('span');
     pctSpan.className = 'tb-pct';
@@ -496,7 +494,24 @@ function renderResults(data) {
     row.appendChild(bar);
     row.appendChild(pctSpan);
     toneBarsEl.appendChild(row);
-  });
+    if (animate) requestAnimationFrame(() => requestAnimationFrame(() => { fill.style.width = pct + '%'; }));
+  }
+
+  if (moodScores && typeof moodScores === 'object' && Object.keys(moodScores).length > 0) {
+    moodEl.style.display = 'none';
+    moodEl.textContent = '';
+    ['professional', 'friendly', 'urgent', 'frustrated', 'formal'].forEach(k => {
+      const score = Math.max(0, Math.min(100, Number(moodScores[k]) || 0));
+      buildBar(k.charAt(0).toUpperCase() + k.slice(1), score, true);
+    });
+  } else {
+    moodEl.style.display = '';
+    moodEl.textContent = data.sender_mood || '—';
+    const toneScores = data.tone_scores || {};
+    ['frustration', 'urgency', 'formality', 'warmth'].filter(k => toneScores[k] !== undefined).forEach(k => {
+      buildBar(k.charAt(0).toUpperCase() + k.slice(1), Math.round((toneScores[k] || 0) * 100), false);
+    });
+  }
 
   const pillUrgency = document.getElementById('pillUrgency');
   const urgencyLow  = (data.urgency || '').toLowerCase();
