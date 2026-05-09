@@ -363,6 +363,30 @@ textarea, input { font-family: inherit; }
 .history-badge.critical { color: var(--u-crit); background: var(--u-crit-bg); }
 .history-thread-icon { display: inline-flex; align-items: center; gap: 3px; font-family: var(--font-mono); font-size: 10px; color: var(--text-4); background: var(--bg-2); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--border-soft); }
 
+/* ── Sidebar search ── */
+.sb-search-wrap { position: relative; padding: 6px 8px 2px; }
+.sb-search-input { width: 100%; background: var(--bg-1); border: 1px solid var(--border-soft); border-radius: 7px; padding: 6px 26px 6px 9px; font-size: 12.5px; color: var(--text); font-family: var(--font-sans); outline: none; box-sizing: border-box; transition: border-color 0.12s; }
+.sb-search-input::placeholder { color: var(--text-4); }
+.sb-search-input:focus { border-color: oklch(0.55 0.090 195 / 0.7); }
+.sb-search-clear { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-4); cursor: pointer; padding: 3px; display: none; align-items: center; line-height: 1; }
+.sb-search-clear.visible { display: flex; }
+.sb-search-clear:hover { color: var(--text-2); }
+
+/* ── History item delete ── */
+.history-item-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.history-delete-btn { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-4); cursor: pointer; padding: 4px; border-radius: 5px; opacity: 0; transition: opacity 0.12s, color 0.12s, background 0.12s; display: flex; align-items: center; pointer-events: none; }
+.history-item:hover .history-delete-btn { opacity: 1; pointer-events: auto; }
+.history-delete-btn:hover { color: oklch(0.65 0.18 25); background: oklch(0.65 0.18 25 / 0.12); }
+.history-item.confirming { border-color: oklch(0.65 0.18 25 / 0.35) !important; background: var(--bg-1) !important; }
+.history-item.confirming .history-delete-btn { display: none; }
+.history-delete-confirm { display: none; border-top: 1px solid var(--border-soft); padding-top: 6px; margin-top: 4px; }
+.history-item.confirming .history-delete-confirm { display: flex; align-items: center; gap: 6px; }
+.hdc-msg { font-size: 11.5px; color: var(--text-3); flex: 1; }
+.hdc-btn { font-size: 11.5px; font-weight: 500; padding: 2px 8px; border-radius: 5px; border: 1px solid var(--border); background: var(--bg-0); color: var(--text-3); cursor: pointer; transition: all 0.12s; }
+.hdc-yes { color: oklch(0.65 0.18 25); border-color: oklch(0.65 0.18 25 / 0.5); }
+.hdc-yes:hover { background: oklch(0.65 0.18 25 / 0.15); }
+.hdc-no:hover { background: var(--bg-1); color: var(--text-2); }
+
 .thread-actions-bar { align-items: center; gap: 10px; padding: 16px 0 0; }
 
 .thread-add-section { background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; margin-top: 16px; }

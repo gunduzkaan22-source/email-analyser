@@ -404,6 +404,22 @@ def update_history_item(item_id):
     return jsonify({'ok': True})
 
 
+@app.route('/history/<item_id>', methods=['DELETE'])
+@auth_required
+@limiter.limit("30 per hour")
+def delete_history_item(item_id):
+    if not _UUID_RE.match(item_id):
+        return jsonify({'error': 'Invalid id'}), 400
+    if not supabase_db:
+        return jsonify({'ok': True})
+    try:
+        supabase_db.table('email_history').delete().eq('id', item_id).eq('user_id', _uid()).execute()
+    except Exception as e:
+        app.logger.error('Supabase DELETE item failed: %s', e)
+        return jsonify({'error': 'Database delete failed'}), 500
+    return jsonify({'ok': True})
+
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 _MAX_JSON_BYTES = 50 * 1024

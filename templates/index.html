@@ -82,6 +82,13 @@
         </button>
       </div>
 
+      <div class="sb-search-wrap">
+        <input type="search" id="searchInput" class="sb-search-input" placeholder="Search analyses…" oninput="onSearchInput()" autocomplete="off" />
+        <button class="sb-search-clear" id="searchClear" onclick="clearSearch()" aria-label="Clear search" title="Clear">
+          <svg viewBox="0 0 16 16" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+        </button>
+      </div>
+
       <div class="sb-list" id="historyList"></div>
 
       <div class="sb-empty" id="historyEmpty">
@@ -383,6 +390,7 @@ let urgencyOverrideOpen = false;
 let currentThread       = [];
 let isThreadMode        = false;
 let lastAnalysisResult  = null;
+let searchQuery         = '';
 
 /* ── Helpers ── */
 function escHtml(str) {
@@ -1023,9 +1031,19 @@ function renderHistory() {
     if (el) el.textContent = counts[f] > 0 ? counts[f] : '';
   });
 
-  const filtered = activeFilter === 'all'
+  let filtered = activeFilter === 'all'
     ? history
     : history.filter(h => (h.urgency || '').toLowerCase() === activeFilter);
+
+  if (searchQuery) {
+    const q = searchQuery;
+    filtered = filtered.filter(h => {
+      const preview = (h.preview || '').toLowerCase();
+      const urgency = (h.urgency || '').toLowerCase();
+      const summary = (h.data && typeof h.data === 'object' ? (h.data.summary || '') : '').toLowerCase();
+      return preview.includes(q) || urgency.includes(q) || summary.includes(q);
+    });
+  }
 
   const historyCount = document.getElementById('historyCount');
   if (historyCount) historyCount.textContent = history.length;
@@ -1037,7 +1055,11 @@ function renderHistory() {
     const msg = document.getElementById('historyEmptyMsg');
     if (msg) {
       msg.innerHTML = '';
-      if (activeFilter === 'all') {
+      if (searchQuery) {
+        msg.appendChild(document.createTextNode('No analyses'));
+        msg.appendChild(document.createElement('br'));
+        msg.appendChild(document.createTextNode('match your search'));
+      } else if (activeFilter === 'all') {
         msg.appendChild(document.createTextNode('Your analyses will'));
         msg.appendChild(document.createElement('br'));
         msg.appendChild(document.createTextNode('appear here'));
@@ -1063,6 +1085,9 @@ function renderHistory() {
     div.className = 'history-item' + (item.id === activeHistoryId ? ' active' : '');
     div.dataset.id = item.id;
 
+    const mainEl = document.createElement('div');
+    mainEl.className = 'history-item-main';
+
     const previewEl = document.createElement('div');
     previewEl.className = 'history-preview';
     if (item.isThread) {
@@ -1086,8 +1111,33 @@ function renderHistory() {
       metaEl.appendChild(badge);
     }
 
-    div.appendChild(previewEl);
-    div.appendChild(metaEl);
+    mainEl.appendChild(previewEl);
+    mainEl.appendChild(metaEl);
+    div.appendChild(mainEl);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'history-delete-btn';
+    delBtn.title = 'Delete';
+    delBtn.setAttribute('aria-label', 'Delete analysis');
+    delBtn.innerHTML = '<svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.5h10M6 2.5h4M7 7v4M9 7v4"/><path d="M4 4.5l.7 8a1.5 1.5 0 0 0 1.5 1.5h3.6a1.5 1.5 0 0 0 1.5-1.5l.7-8"/></svg>';
+    div.appendChild(delBtn);
+
+    const confirmEl = document.createElement('div');
+    confirmEl.className = 'history-delete-confirm';
+    const msgEl = document.createElement('span');
+    msgEl.className = 'hdc-msg';
+    msgEl.textContent = 'Delete this analysis?';
+    const noBtn = document.createElement('button');
+    noBtn.className = 'hdc-btn hdc-no';
+    noBtn.textContent = 'No';
+    const yesBtn = document.createElement('button');
+    yesBtn.className = 'hdc-btn hdc-yes';
+    yesBtn.textContent = 'Yes';
+    confirmEl.appendChild(msgEl);
+    confirmEl.appendChild(noBtn);
+    confirmEl.appendChild(yesBtn);
+    div.appendChild(confirmEl);
+
     frag.appendChild(div);
   });
   list.appendChild(frag);
@@ -1147,6 +1197,34 @@ function loadHistoryItem(id) {
   renderHistory();
   wsScroll(0);
   if (window.innerWidth < 700) closeSidebar();
+}
+
+function onSearchInput() {
+  searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
+  document.getElementById('searchClear').classList.toggle('visible', searchQuery.length > 0);
+  renderHistory();
+}
+
+function clearSearch() {
+  searchQuery = '';
+  document.getElementById('searchInput').value = '';
+  document.getElementById('searchClear').classList.remove('visible');
+  renderHistory();
+}
+
+function confirmDeleteHistoryItem(itemEl) {
+  document.querySelectorAll('.history-item.confirming').forEach(el => {
+    if (el !== itemEl) el.classList.remove('confirming');
+  });
+  itemEl.classList.add('confirming');
+}
+
+async function deleteHistoryItem(id) {
+  historyData = historyData.filter(h => h.id !== id);
+  if (activeHistoryId === id) activeHistoryId = null;
+  renderHistory();
+  try { await fetch('/history/' + encodeURIComponent(id), { method: 'DELETE' }); } catch(e) {}
+  showToast('Analysis deleted');
 }
 
 async function clearHistory() {
@@ -1242,6 +1320,22 @@ function doLogout() { window.location.href = '/logout'; }
 })();
 
 document.getElementById('historyList').addEventListener('click', e => {
+  if (e.target.closest('.history-delete-btn')) {
+    const item = e.target.closest('.history-item');
+    if (item) confirmDeleteHistoryItem(item);
+    return;
+  }
+  if (e.target.closest('.hdc-no')) {
+    const item = e.target.closest('.history-item');
+    if (item) item.classList.remove('confirming');
+    return;
+  }
+  if (e.target.closest('.hdc-yes')) {
+    const item = e.target.closest('.history-item');
+    if (item && item.dataset.id) deleteHistoryItem(item.dataset.id);
+    return;
+  }
+  if (e.target.closest('.history-delete-confirm')) return;
   const item = e.target.closest('.history-item');
   if (item && item.dataset.id) loadHistoryItem(item.dataset.id);
 });
