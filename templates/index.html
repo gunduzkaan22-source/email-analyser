@@ -469,6 +469,34 @@ function senderHue(name) {
   return AVATAR_HUES[h % AVATAR_HUES.length];
 }
 
+function getHistoryGroup(dateStr) {
+  const d = new Date(dateStr);
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterStart = new Date(+todayStart - 86400000);
+  const weekStart   = new Date(+todayStart - 6 * 86400000);
+  if (d >= todayStart) return 'Today';
+  if (d >= yesterStart) return 'Yesterday';
+  if (d >= weekStart) return 'This week';
+  return 'Older';
+}
+
+function hlText(el, text, q) {
+  if (!q) { el.textContent = text; return; }
+  const safe = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const parts = text.split(new RegExp('(' + safe + ')', 'ig'));
+  parts.forEach(function(part) {
+    if (part.toLowerCase() === q.toLowerCase()) {
+      const m = document.createElement('mark');
+      m.className = 'sb-hl';
+      m.textContent = part;
+      el.appendChild(m);
+    } else if (part) {
+      el.appendChild(document.createTextNode(part));
+    }
+  });
+}
+
 /* ── Helpers ── */
 function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1178,10 +1206,21 @@ function renderHistory() {
   list.innerHTML = '';
   const frag = document.createDocumentFragment();
   const badgeMap = { low: 'low', medium: 'med', high: 'high', critical: 'crit' };
+  const GROUP_ORDER = ['Today', 'Yesterday', 'This week', 'Older'];
+  const q = searchQuery;
 
+  /* Group items by date */
+  const groupMap = {};
   filtered.forEach(item => {
-    const urgLow    = (item.urgency || '').toLowerCase();
-    const preview   = item.preview || '(empty)';
+    const grp = getHistoryGroup(item.date);
+    if (!groupMap[grp]) groupMap[grp] = [];
+    groupMap[grp].push(item);
+  });
+  const groupKeys = GROUP_ORDER.filter(g => groupMap[g]);
+
+  function buildItem(item) {
+    const urgLow     = (item.urgency || '').toLowerCase();
+    const preview    = item.preview || '(empty)';
     const senderName = (item.data && item.data.sender) ? item.data.sender : '';
     const nameWords  = senderName.split(/\s+/).filter(Boolean);
     const initials   = nameWords.length >= 2
@@ -1215,7 +1254,7 @@ function renderHistory() {
       icon.textContent = item.threadCount;
       from.appendChild(icon);
     }
-    from.appendChild(document.createTextNode(senderName || preview));
+    hlText(from, senderName || preview, q);
     const time = document.createElement('div');
     time.className = 'sb-time';
     time.textContent = formatDate(item.date);
@@ -1224,11 +1263,11 @@ function renderHistory() {
 
     const subj = document.createElement('div');
     subj.className = 'sb-subj';
-    subj.textContent = preview;
+    hlText(subj, preview, q);
 
     const snip = document.createElement('div');
     snip.className = 'sb-snip';
-    snip.textContent = snippet;
+    hlText(snip, snippet, q);
 
     const meta = document.createElement('div');
     meta.className = 'sb-meta';
@@ -1278,8 +1317,17 @@ function renderHistory() {
     div.appendChild(body);
     div.appendChild(trash);
     div.appendChild(confirmEl);
-    frag.appendChild(div);
+    return div;
+  }
+
+  groupKeys.forEach(grpName => {
+    const labelEl = document.createElement('div');
+    labelEl.className = 'sb-group-label';
+    labelEl.textContent = grpName;
+    frag.appendChild(labelEl);
+    groupMap[grpName].forEach(item => frag.appendChild(buildItem(item)));
   });
+
   list.appendChild(frag);
 }
 
@@ -1497,6 +1545,22 @@ document.getElementById('actionList').addEventListener('click', e => {
 document.getElementById('threadTimeline').addEventListener('click', e => {
   const btn = e.target.closest('.thread-reply-toggle');
   if (btn) toggleThreadReply(parseInt(btn.dataset.idx, 10));
+});
+
+/* Sidebar keyboard shortcuts */
+document.addEventListener('keydown', function(e) {
+  const searchInput = document.getElementById('searchInput');
+  if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+    if (searchInput) { e.preventDefault(); searchInput.focus(); searchInput.select(); }
+  }
+  if (e.key === 'Escape') {
+    /* Clear confirm state */
+    document.querySelectorAll('.sb-item.confirming').forEach(el => el.classList.remove('confirming'));
+    /* Clear search if input is focused */
+    if (document.activeElement === searchInput && searchQuery) {
+      clearSearch();
+    }
+  }
 });
 
 loadHistory();
