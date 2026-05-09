@@ -2,14 +2,16 @@ import os
 import json
 import uuid
 import re
+import secrets
 import datetime
 from functools import wraps
 from io import BytesIO
 import anthropic
 from flask import (
     Flask, render_template, render_template_string, request, jsonify,
-    Response, stream_with_context, session, redirect,
+    Response, stream_with_context, session, redirect, g,
 )
+from werkzeug.middleware.proxy_fix import ProxyFix
 try:
     import openpyxl
     from openpyxl.styles import PatternFill, Font, Alignment
@@ -27,6 +29,7 @@ except ImportError:
 load_dotenv()
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 _secret_key = os.environ.get('SECRET_KEY', '')
 if not _secret_key:
     raise RuntimeError('SECRET_KEY environment variable must be set before starting the app.')
@@ -37,8 +40,12 @@ if not _anthropic_api_key:
 app.secret_key = _secret_key
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_SECURE'] = os.environ.get('FLASK_ENV') == 'production'
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('FLASK_ENV', 'production') != 'development'
 app.permanent_session_lifetime = datetime.timedelta(days=30)
+
+if not os.environ.get('APP_BASE_URL', ''):
+    import warnings
+    warnings.warn('APP_BASE_URL is not set — magic-link sign-in will be unavailable.', stacklevel=1)
 
 _SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
 _SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_KEY', '')
@@ -67,6 +74,16 @@ limiter = Limiter(
     app=app,
     default_limits=[],
 )
+
+
+@app.before_request
+def _generate_csp_nonce():
+    g.csp_nonce = secrets.token_urlsafe(16)
+
+
+@app.context_processor
+def _inject_csp_nonce():
+    return {'csp_nonce': g.get('csp_nonce', '')}
 
 _anthropic = anthropic.Anthropic(api_key=_anthropic_api_key)
 
@@ -103,9 +120,10 @@ def set_security_headers(response):
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=(), clipboard-read=()'
     response.headers['Strict-Transport-Security'] = 'max-age=63072000; includeSubDomains'
+    nonce = g.get('csp_nonce', '')
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline'; "
+        f"script-src 'self' 'nonce-{nonce}'; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "font-src 'self' https://fonts.gstatic.com; "
         "img-src 'self' data:; "
@@ -151,8 +169,10 @@ def login_post():
         return jsonify({'error': 'Auth service unavailable.'}), 503
 
     try:
-        # Use an explicit env var so the redirect URL can't be spoofed via Host header
-        base_url = os.environ.get('APP_BASE_URL', '').rstrip('/') or request.url_root.rstrip('/')
+        base_url = os.environ.get('APP_BASE_URL', '').rstrip('/')
+        if not base_url:
+            app.logger.error('APP_BASE_URL is not set; cannot generate safe magic-link redirect URL.')
+            return jsonify({'error': 'Service configuration error. Please contact the admin.'}), 503
         client.auth.sign_in_with_otp({
             'email': email,
             'options': {'email_redirect_to': f'{base_url}/auth/callback'},
@@ -199,11 +219,11 @@ def auth_callback():
         '<style>body{font-family:sans-serif;color:#888;text-align:center;margin-top:120px;'
         'background:#1a1d28}</style></head><body>'
         '<p>Signing in…</p>'
-        '<script>'
+        '<script nonce="{{ csp_nonce }}">'
         '(function(){'
         'var h=location.hash.slice(1),p={};'
-        'h.split("&").forEach(function(s){var kv=s.split("=");'
-        'if(kv.length===2)p[decodeURIComponent(kv[0])]=decodeURIComponent(kv[1]);});'
+        'h.split("&").forEach(function(s){var i=s.indexOf("=");'
+        'if(i>0)p[decodeURIComponent(s.slice(0,i))]=decodeURIComponent(s.slice(i+1));});'
         'if(p.access_token){'
         'fetch("/auth/session",{method:"POST",'
         'headers:{"Content-Type":"application/json"},'
@@ -453,8 +473,14 @@ _INJECTION_RE = re.compile(
     r'|new\s+instructions?'
     r'|override\s+(all\s+)?instructions?'
     r'|you\s+are\s+now\s+a'
-    r'|act\s+as\s+a?\s*different'
+    r'|act\s+as\s+(a\s+)?different'
+    r'|do\s+not\s+follow'
+    r'|stop\s+following'
+    r'|from\s+now\s+on[\s,]'
+    r'|reveal\s+(your\s+)?(system\s+)?prompt'
+    r'|print\s+(your\s+)?(system\s+)?prompt'
     r'|jailbreak'
+    r'|DAN\b'
     r')\b',
     re.IGNORECASE,
 )
@@ -566,7 +592,7 @@ def analyse():
     email_text = (data or {}).get('email', '').strip()
     _raw_tone = (data or {}).get('tone', 'Professional').strip()
     tone = _raw_tone if _raw_tone in TONE_GUIDES else 'Professional'
-    name = str((data or {}).get('name', '') or '')[:50].strip()
+    name = re.sub(r"[^\w\s'\-.]", '', str((data or {}).get('name', '') or ''))[:50].strip()
     if _INJECTION_RE.search(name):
         name = ''
 
@@ -622,6 +648,9 @@ def analyse():
         ]
     )
 
+    if not response.content:
+        app.logger.error('Anthropic API returned empty content list')
+        return jsonify({'error': 'Analysis failed — no response received. Please try again.'}), 500
     raw = response.content[0].text
     cleaned = raw.replace("```json", "").replace("```", "").strip()
     try:
@@ -649,7 +678,7 @@ def analyse_thread():
     email_text = (data or {}).get('email', '').strip()
     _raw_tone = (data or {}).get('tone', 'Professional').strip()
     tone = _raw_tone if _raw_tone in TONE_GUIDES else 'Professional'
-    name = str((data or {}).get('name', '') or '')[:50].strip()
+    name = re.sub(r"[^\w\s'\-.]", '', str((data or {}).get('name', '') or ''))[:50].strip()
     if _INJECTION_RE.search(name):
         name = ''
 
@@ -729,6 +758,9 @@ def analyse_thread():
         }]
     )
 
+    if not response.content:
+        app.logger.error('Anthropic API returned empty content list')
+        return jsonify({'error': 'Analysis failed — no response received. Please try again.'}), 500
     raw = response.content[0].text
     cleaned = raw.replace("```json", "").replace("```", "").strip()
     try:
@@ -753,7 +785,7 @@ def regenerate_reply():
     email_text = (data or {}).get('email', '').strip()
     _raw_tone = (data or {}).get('tone', 'Professional').strip()
     tone = _raw_tone if _raw_tone in TONE_GUIDES else 'Professional'
-    name = str((data or {}).get('name', '') or '')[:50].strip()
+    name = re.sub(r"[^\w\s'\-.]", '', str((data or {}).get('name', '') or ''))[:50].strip()
     if _INJECTION_RE.search(name):
         name = ''
 

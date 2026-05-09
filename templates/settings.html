@@ -634,7 +634,7 @@ button:focus-visible { outline:2px solid var(--st-teal); outline-offset:2px; }
 
 </main>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 const USER_EMAIL = {{ user_email | tojson }};
 let dzChecked = false;
 
