@@ -39,7 +39,7 @@ if not _anthropic_api_key:
     raise RuntimeError('ANTHROPIC_API_KEY environment variable must be set before starting the app.')
 app.secret_key = _secret_key
 app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SAMESITE'] = 'Strict'
 app.config['SESSION_COOKIE_SECURE'] = os.environ.get('FLASK_ENV', 'production') != 'development'
 app.permanent_session_lifetime = datetime.timedelta(days=30)
 
@@ -124,8 +124,8 @@ def set_security_headers(response):
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
         f"script-src 'self' 'nonce-{nonce}'; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-        "font-src 'self' https://fonts.gstatic.com; "
+        "style-src 'self' 'unsafe-inline'; "
+        "font-src 'self'; "
         "img-src 'self' data:; "
         "connect-src 'self'; "
         "object-src 'none'; "
@@ -161,7 +161,7 @@ def login_post():
         if not result.data:
             return jsonify({'error': "You're not on the invite list. Contact the admin to get access."}), 403
     except Exception as e:
-        app.logger.error('allowed_emails check failed: %s', e)
+        app.logger.error('allowed_emails check failed: %s', type(e).__name__)
         return jsonify({'error': 'Service unavailable. Please try again.'}), 503
 
     client = _auth_client()
@@ -180,7 +180,7 @@ def login_post():
         return jsonify({'sent': True})
     except Exception as e:
         msg = str(e).lower()
-        app.logger.error('sign_in_with_otp failed: %s', e)
+        app.logger.error('sign_in_with_otp failed: %s', type(e).__name__)
         if 'rate limit' in msg or 'too many' in msg:
             return jsonify({'error': 'Too many sign-in emails sent. Please wait a few minutes and try again.'}), 429
         return jsonify({'error': 'Failed to send magic link. Please try again.'}), 500
@@ -210,7 +210,7 @@ def auth_callback():
                 session['user_email'] = user.email or ''
                 return redirect('/')
         except Exception as e:
-            app.logger.error('verify_otp failed (type=%s): %s', otp_type, e)
+            app.logger.error('verify_otp failed (type=%s): %s', otp_type, type(e).__name__)
         return redirect('/login?error=invalid_link')
 
     # No token_hash in query string — return a JS bridge for hash-fragment flow
@@ -272,7 +272,7 @@ def auth_session():
         session['user_email'] = user.email or ''
         return jsonify({'ok': True})
     except Exception as e:
-        app.logger.error('auth_session failed: %s', e)
+        app.logger.error('auth_session failed: %s', type(e).__name__)
         return jsonify({'ok': False}), 401
 
 
@@ -334,7 +334,7 @@ def get_history():
             })
         return jsonify(items)
     except Exception as e:
-        app.logger.error('Supabase GET history failed: %s', e)
+        app.logger.error('Supabase GET history failed: %s', type(e).__name__)
         return jsonify([])
 
 
@@ -362,7 +362,7 @@ def save_history():
             'thread_json':   _cap_json(data.get('thread')),
         }).execute()
     except Exception as e:
-        app.logger.error('Supabase INSERT failed: %s', e)
+        app.logger.error('Supabase INSERT failed: %s', type(e).__name__)
     return jsonify({'id': new_id})
 
 
@@ -419,7 +419,7 @@ def update_history_item(item_id):
          .eq('user_id', _uid())
          .execute())
     except Exception as e:
-        app.logger.error('Supabase PATCH failed for %s: %s', item_id, e)
+        app.logger.error('Supabase PATCH failed for %s: %s', item_id, type(e).__name__)
         return jsonify({'error': 'Database update failed'}), 500
     return jsonify({'ok': True})
 
@@ -435,7 +435,7 @@ def delete_history_item(item_id):
     try:
         supabase_db.table('email_history').delete().eq('id', item_id).eq('user_id', _uid()).execute()
     except Exception as e:
-        app.logger.error('Supabase DELETE item failed: %s', e)
+        app.logger.error('Supabase DELETE item failed: %s', type(e).__name__)
         return jsonify({'error': 'Database delete failed'}), 500
     return jsonify({'ok': True})
 
@@ -661,7 +661,7 @@ def analyse():
     try:
         result = _post_analyse(result)
     except ValueError as e:
-        app.logger.error('[post-hook] Validation failed: %s', e)
+        app.logger.error('[post-hook] Validation failed: %s', type(e).__name__)
         return jsonify({'error': 'Analysis produced an incomplete result. Please try again.'}), 500
 
     return jsonify(result)
@@ -771,7 +771,7 @@ def analyse_thread():
     try:
         result = _post_analyse(result)
     except ValueError as e:
-        app.logger.error('[post-hook] Validation failed: %s', e)
+        app.logger.error('[post-hook] Validation failed: %s', type(e).__name__)
         return jsonify({'error': 'Analysis produced an incomplete result. Please try again.'}), 500
 
     return jsonify(result)
@@ -838,7 +838,7 @@ def regenerate_reply():
                     yield f"data: {json.dumps({'chunk': text})}\n\n"
             yield "data: [DONE]\n\n"
         except Exception as e:
-            app.logger.error('Reply stream error: %s', e)
+            app.logger.error('Reply stream error: %s', type(e).__name__)
             yield f"data: {json.dumps({'error': 'Reply generation failed. Please try again.'})}\n\n"
 
     return Response(
@@ -1023,7 +1023,7 @@ def settings():
                 except ValueError:
                     created_at = raw[:10]
         except Exception as e:
-            app.logger.error('settings: get_user_by_id failed: %s', e)
+            app.logger.error('settings: get_user_by_id failed: %s', type(e).__name__)
 
         try:
             count_resp = (supabase_db.table('email_history')
@@ -1032,7 +1032,7 @@ def settings():
                           .execute())
             analysis_count = count_resp.count or 0
         except Exception as e:
-            app.logger.error('settings: count query failed: %s', e)
+            app.logger.error('settings: count query failed: %s', type(e).__name__)
 
     return render_template('settings.html',
                            user_email=email,
@@ -1051,17 +1051,17 @@ def account_delete():
     try:
         supabase_db.auth.admin.delete_user(uid)
     except Exception as e:
-        app.logger.error('account_delete: auth delete failed: %s', e)
+        app.logger.error('account_delete: auth delete failed: %s', type(e).__name__)
         return jsonify({'error': 'Failed to delete account.'}), 500
     try:
         supabase_db.table('email_history').delete().eq('user_id', uid).execute()
     except Exception as e:
-        app.logger.error('account_delete: history delete failed: %s', e)
+        app.logger.error('account_delete: history delete failed: %s', type(e).__name__)
     try:
         if email:
             supabase_db.table('allowed_emails').delete().eq('email', email).execute()
     except Exception as e:
-        app.logger.error('account_delete: allowed_emails delete failed: %s', e)
+        app.logger.error('account_delete: allowed_emails delete failed: %s', type(e).__name__)
     session.clear()
     return jsonify({'ok': True})
 
@@ -1085,7 +1085,7 @@ def account_export():
                   .execute())
         rows = result.data or []
     except Exception as e:
-        app.logger.error('account_export: query failed: %s', e)
+        app.logger.error('account_export: query failed: %s', type(e).__name__)
         return jsonify({'error': 'Failed to fetch data.'}), 500
 
     now = datetime.datetime.now()

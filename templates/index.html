@@ -1,11 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MailLens — AI Email Intelligence</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="/static/style.css" />
   <script nonce="{{ csp_nonce }}">
     (function(){var t=localStorage.getItem('maillens.theme')||'dark';document.documentElement.setAttribute('data-theme',t)})();
@@ -1603,6 +1601,46 @@ document.addEventListener('keydown', function(e) {
 })();
 
 loadHistory();
+
+/* ── First-use consent banner ── */
+(function () {
+  if (localStorage.getItem('maillens.consent')) return;
+  var bar = document.createElement('div');
+  bar.id = 'consentBar';
+  bar.style.cssText = [
+    'position:fixed', 'bottom:0', 'left:0', 'right:0', 'z-index:9999',
+    'background:var(--bg-2)', 'border-top:1px solid var(--border-strong)',
+    'padding:14px 24px', 'display:flex', 'align-items:center', 'gap:16px',
+    'font-size:13px', 'color:var(--text-2)', 'flex-wrap:wrap',
+    'backdrop-filter:blur(8px)',
+  ].join(';');
+    function el(tag, styles, text) {
+    var node = document.createElement(tag);
+    if (styles) node.style.cssText = styles;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+  var msg = el('span', 'flex:1;min-width:200px');
+  msg.appendChild(el('strong', 'color:var(--text)', 'Privacy notice: '));
+  msg.appendChild(document.createTextNode('By using MailLens, the email text you paste is sent to the '));
+  msg.appendChild(el('strong', 'color:var(--text)', 'Anthropic Claude API'));
+  msg.appendChild(document.createTextNode(' for analysis and stored for up to 90 days. '));
+  var privLink = el('a', 'color:var(--teal);text-decoration:none', 'Privacy Notice');
+  privLink.href = '/privacy';
+  msg.appendChild(privLink);
+  var btn = el('button',
+    'background:var(--teal);color:oklch(0.16 0.022 252);border:none;' +
+    'padding:8px 20px;border-radius:var(--radius-sm);font-size:13px;' +
+    'font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0',
+    'Accept & continue');
+  btn.addEventListener('click', function () {
+    localStorage.setItem('maillens.consent', '1');
+    bar.remove();
+  });
+  bar.appendChild(msg);
+  bar.appendChild(btn);
+  document.body.appendChild(bar);
+})();
 </script>
 
 </body>
