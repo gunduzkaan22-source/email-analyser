@@ -1,6 +1,9 @@
 {
   "permissions": {
     "allow": [
+      "Bash(git status *)",
+      "Bash(git log *)",
+      "Bash(git diff *)",
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git push *)",
@@ -42,7 +45,73 @@
       "Bash(railway status *)",
       "Bash(railway whoami *)",
       "PowerShell(railway *)",
-      "Bash(dir C:\\\\Users\\\\gundu\\\\claude-learning\\\\email-analyser\\\\project *)"
+      "Bash(dir C:\\\\Users\\\\gundu\\\\claude-learning\\\\email-analyser\\\\project *)",
+      "Bash(echo \"EXIT:$?\")",
+      "mcp__claude_ai_Supabase__execute_sql",
+      "mcp__claude_ai_Supabase__list_tables",
+      "mcp__claude_ai_Supabase__get_project",
+      "mcp__claude_ai_Supabase__search_docs",
+      "mcp__claude_ai_Supabase__list_projects",
+      "mcp__claude_ai_Supabase__apply_migration",
+      "mcp__claude_ai_Netlify__netlify-project-services-reader",
+      "Bash(Get-Content \"C:\\\\Users\\\\gundu\\\\claude-learning\\\\static\\\\style.css\")",
+      "Bash(Measure-Object -Line)",
+      "mcp__claude_ai_Supabase__list_extensions",
+      "Bash(dir \"C:\\\\Users\\\\gundu\\\\claude-learning\")",
+      "Bash(nslookup *)",
+      "mcp__claude_ai_Supabase__get_logs",
+      "Bash(pip index *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\gundu\\\\claude-learning\" -Filter \"railway*\" -Recurse -ErrorAction SilentlyContinue)",
+      "Bash(dir C:\\\\Users\\\\gundu\\\\claude-learning\\\\email-analyser\\\\ *)",
+      "Bash(dir C:\\\\Users\\\\gundu\\\\claude-learning *)",
+      "Bash(Expand-Archive -Path \"C:\\\\Users\\\\gundu\\\\Downloads\\\\Settings-handoff.zip\" -DestinationPath \"C:\\\\Users\\\\gundu\\\\Downloads\\\\Settings-handoff\" -Force)",
+      "Bash(Get-ChildItem -Recurse \"C:\\\\Users\\\\gundu\\\\Downloads\\\\Settings-handoff\")",
+      "Bash(unzip -o \"/mnt/c/Users/gundu/Downloads/Settings-handoff.zip\" -d \"/mnt/c/Users/gundu/Downloads/Settings-handoff\")",
+      "Bash(Expand-Archive *)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\gundu\\\\Downloads\\\\email-analyser-handoff\" -Recurse | ForEach-Object { $_.FullName })",
+      "Bash(Start-Sleep -Seconds 30)",
+      "Bash(Write-Output \"Done waiting\")",
+      "Bash(Get-ChildItem -Path \"email-analyser\" -Recurse)",
+      "Bash(Get-ChildItem -Recurse \"C:\\\\Users\\\\gundu\\\\Downloads\\\\email-analyser-handoff-2\")",
+      "PowerShell(Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::ExtractToDirectory\\(\"C:\\\\Users\\\\gundu\\\\Downloads\\\\Email Analyser-handoff \\(2\\).zip\", \"C:\\\\Users\\\\gundu\\\\Downloads\\\\handoff-2\"\\); Get-ChildItem -Recurse \"C:\\\\Users\\\\gundu\\\\Downloads\\\\handoff-2\" | Select-Object -ExpandProperty FullName)",
+      "Bash(Get-Content \"C:\\\\Users\\\\gundu\\\\claude-learning\\\\.gitignore\" -ErrorAction SilentlyContinue)",
+      "Bash(Write-Output \"NO_GITIGNORE\")",
+      "Bash(gh.exe run *)",
+      "Bash(where.exe gh *)",
+      "Bash(pip freeze *)",
+      "Bash(pip3 freeze *)",
+      "Bash(Get-Content \"C:\\\\Users\\\\gundu\\\\claude-learning\\\\templates\\\\index.html\")",
+      "Bash(Select-Object -ExpandProperty Lines)",
+      "PowerShell(Get-Content *)",
+      "PowerShell(git *)",
+      "Bash(gh workflow *)",
+      "PowerShell(gh *)",
+      "Bash(git check-ignore *)",
+      "Bash(Select-String -Pattern \"\\(localhost|127\\\\.0\\\\.0\\\\.1|debug\\\\s*=\\\\s*True|console\\\\.log|print\\\\\\(|TODO|FIXME|os\\\\.environ\\\\.get\\\\\\(|app\\\\.run\\)\")",
+      "Bash(git *)",
+      "Bash(py *)",
+      "WebFetch(domain:api.anthropic.com)",
+      "Read(//mnt/c/Users/gundu/claude-learning/templates/**)",
+      "Read(//mnt/c/Users/gundu/claude-learning/**)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ],
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$raw = [Console]::In.ReadToEnd(); $j = $raw | ConvertFrom-Json; $f = $j.tool_input.file_path; if ($f -and $f.EndsWith('.py')) { $err = python -m py_compile $f 2>&1; if ($LASTEXITCODE -ne 0) { $ctx = 'Syntax error in ' + $f + ': ' + ($err -join '; '); ConvertTo-Json -Compress @{hookSpecificOutput=@{hookEventName='PostToolUse';additionalContext=$ctx}} } }; exit 0",
+            "shell": "powershell",
+            "statusMessage": "Checking Python syntax..."
+          }
+        ]
+      }
     ]
   }
 }

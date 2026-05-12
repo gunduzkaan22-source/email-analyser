@@ -380,12 +380,13 @@ textarea, input { font-family: inherit; }
 
 .loading-card { background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 14px; }
 .skeleton-lines { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
-.skeleton-line { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--bg-2) 25%, var(--bg-3) 50%, var(--bg-2) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+.skeleton-line, .skel { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--bg-2) 25%, var(--bg-3) 50%, var(--bg-2) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 .loading-hint { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--text-4); font-family: var(--font-mono); }
 
 .btn-spinner { width: 12px; height: 12px; border: 1.5px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
 .urgency-override-btn { width: 20px; height: 20px; display: grid; place-items: center; background: transparent; border: none; color: var(--text-4); border-radius: 4px; transition: color 0.12s; padding: 0; }
 .urgency-override-btn:hover { color: var(--text-2); }
@@ -892,6 +893,139 @@ textarea, input { font-family: inherit; }
 }
 
 .excel-export-arrow { flex-shrink: 0; }
+
+/* ── Compose ─────────────────────────────────────────────────────────────── */
+
+.compose-panel {
+  animation: fadeUp 0.18s ease;
+}
+
+.compose-recipient-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.compose-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--teal-bg);
+  border: 1.5px solid var(--teal);
+  color: var(--teal);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.compose-recipient-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  padding: 0;
+}
+
+.compose-recipient-input::placeholder { color: var(--text-4); }
+
+.compose-textarea {
+  width: 100%;
+  min-height: 120px;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
+}
+
+.compose-textarea:focus { border-color: var(--teal); }
+.compose-textarea::placeholder { color: var(--text-4); }
+
+.compose-loading {
+  padding: 20px 24px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.compose-subject-card {
+  background: var(--teal-bg);
+  border: 1.5px solid var(--teal);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+}
+
+.compose-subject-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.compose-subject-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--teal);
+}
+
+.compose-subject-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+}
+
+.compose-body-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.compose-body-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.compose-body-text {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-2);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.compose-result-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
 
 /* ── Settings page (styles are self-contained in templates/settings.html) ──── */
 

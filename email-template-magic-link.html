@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MailLens Email Template Preview</title>
+</head>
+<body style="margin:0;padding:40px 16px;background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;min-height:100vh;">
+
+<div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08),0 0 0 1px rgba(0,0,0,0.05);">
+
+  <!-- Header -->
+  <div style="background:#0f1117;padding:24px 36px;border-bottom:2px solid #14b8a8;">
+    <table cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td style="vertical-align:middle;padding-right:12px;">
+          <!-- Brand mark: teal square with navy inner square -->
+          <table cellpadding="0" cellspacing="0" border="0" style="border-radius:8px;overflow:hidden;">
+            <tr>
+              <td style="width:32px;height:32px;background:#14b8a8;border-radius:8px;text-align:center;vertical-align:middle;">
+                <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+                  <tr>
+                    <td style="width:14px;height:14px;background:#0f1117;border-radius:3px;font-size:0;">&nbsp;</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
+        <td style="vertical-align:middle;">
+          <span style="color:#ffffff;font-size:18px;font-weight:700;letter-spacing:-0.3px;">MailLens</span>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Body -->
+  <div style="padding:40px 36px 32px;">
+
+    <!-- Icon accent -->
+    <div style="width:44px;height:44px;background:#f0fdf9;border-radius:10px;margin-bottom:20px;text-align:center;line-height:44px;">
+      <span style="font-size:20px;">✉️</span>
+    </div>
+
+    <p style="margin:0 0 6px;font-size:22px;font-weight:700;color:#0f1117;letter-spacing:-0.5px;line-height:1.2;">
+      Sign in to MailLens
+    </p>
+    <p style="margin:0 0 28px;font-size:15px;color:#6b7280;line-height:1.65;">
+      Click the button below to sign in to your account. This link is valid for
+      <strong style="color:#374151;font-weight:600;">60 minutes</strong>
+      and can only be used once.
+    </p>
+
+    <!-- CTA Button -->
+    <table cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td style="border-radius:9px;background:#14b8a8;">
+          <a href="{{ .ConfirmationURL }}"
+             style="display:inline-block;background:#14b8a8;color:#0d2620;text-decoration:none;font-size:15px;font-weight:700;padding:14px 32px;border-radius:9px;letter-spacing:-0.2px;">
+            Sign in to MailLens &rarr;
+          </a>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Security note -->
+    <p style="margin:20px 0 0;font-size:12px;color:#9ca3af;line-height:1.6;">
+      If you didn't request this sign-in link, you can safely ignore this email — your account has not been accessed.
+    </p>
+
+    <hr style="border:none;border-top:1px solid #f0f0f0;margin:28px 0;" />
+
+    <!-- Fallback URL -->
+    <p style="margin:0 0 4px;font-size:12px;color:#9ca3af;">Or copy this link into your browser:</p>
+    <p style="margin:0;font-size:11px;color:#cbd5e1;word-break:break-all;line-height:1.5;">
+      {{ .ConfirmationURL }}
+    </p>
+
+  </div>
+
+  <!-- Footer -->
+  <div style="background:#f9fafb;padding:18px 36px;border-top:1px solid #f0f0f0;">
+    <table cellpadding="0" cellspacing="0" border="0" width="100%">
+      <tr>
+        <td>
+          <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.6;">
+            Sent to {{ .Email }}<br />
+            <span style="color:#d1d5db;">MailLens &middot; AI-Powered Email Analysis &middot; <a href="https://maillens.uk/privacy" style="color:#14b8a8;text-decoration:none;">Privacy Notice</a></span>
+          </p>
+        </td>
+        <td style="text-align:right;vertical-align:top;">
+          <!-- Mini brand mark in footer -->
+          <table cellpadding="0" cellspacing="0" border="0" style="margin-left:auto;">
+            <tr>
+              <td style="width:18px;height:18px;background:#14b8a8;border-radius:4px;text-align:center;vertical-align:middle;">
+                <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+                  <tr>
+                    <td style="width:8px;height:8px;background:#0f1117;border-radius:1px;font-size:0;">&nbsp;</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+</div>
+
+<!-- Preview note — remove this when pasting into Supabase -->
+<p style="text-align:center;margin-top:24px;font-size:12px;color:#9ca3af;">
+  Preview only — <code style="background:#e5e7eb;padding:2px 6px;border-radius:4px;">{{ .ConfirmationURL }}</code> and <code style="background:#e5e7eb;padding:2px 6px;border-radius:4px;">{{ .Email }}</code> are Supabase template variables
+</p>
+
+</body>
+</html>

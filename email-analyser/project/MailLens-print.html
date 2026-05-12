@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MailLens — Print</title>
+<link rel="stylesheet" href="styles.css" />
+<style>
+  /* Screen preview: show pages stacked on a dark surround */
+  html, body {
+    overflow: visible !important;
+    height: auto !important;
+    background: #0a0e16;
+  }
+  body { padding: 24px 0; }
+
+  .print-page {
+    width: 1440px;
+    margin: 0 auto 24px;
+    background: var(--bg-0);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    overflow: hidden;
+    position: relative;
+    break-after: page;
+  }
+  .print-page:last-child { break-after: auto; margin-bottom: 0; }
+
+  /* Re-implement the app shell as a static block (no fixed viewport) */
+  .print-app {
+    display: grid;
+    grid-template-rows: 52px auto;
+    height: auto;
+  }
+  .print-main {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    height: auto;
+    overflow: visible;
+  }
+  .print-sidebar {
+    border-right: 1px solid var(--border);
+    background: var(--bg-0);
+    height: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .print-sidebar .sb-list {
+    overflow: visible !important;
+    flex: none;
+    height: auto;
+  }
+  .print-workspace {
+    background: var(--bg-0);
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+    height: auto;
+  }
+  .print-workspace .ws-body {
+    overflow: visible !important;
+    height: auto !important;
+    flex: none;
+  }
+  .print-workspace .ws-inner {
+    padding-bottom: 32px;
+  }
+
+  /* Avoid awkward splits */
+  .card, .reply-card, .input-panel, .t-msg, .action {
+    break-inside: avoid;
+  }
+
+  @page {
+    size: 1480px 1900px;
+    margin: 0;
+  }
+
+  @media print {
+    html, body {
+      background: var(--bg-0) !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    body { padding: 0 !important; }
+    .print-page {
+      margin: 0 !important;
+      box-shadow: none !important;
+      width: 1480px !important;
+    }
+    /* Force background colors to print */
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    /* Hide any leftover scroll affordances */
+    ::-webkit-scrollbar { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="icons.jsx"></script>
+<script type="text/babel" src="data.jsx"></script>
+<script type="text/babel" src="sidebar.jsx"></script>
+<script type="text/babel" src="analyze.jsx"></script>
+<script type="text/babel" src="thread.jsx"></script>
+
+<script type="text/babel">
+const PrintTopNav = () => (
+  <header className="topnav">
+    <div className="brand">
+      <div className="brand-mark" />
+      <span>MailLens</span>
+    </div>
+    <span className="beta-badge">Beta</span>
+    <div className="topnav-divider" />
+    <div className="crumb">
+      <span>Inbox</span>
+      <span className="crumb-sep">/</span>
+      <strong>Marcus Whitfield</strong>
+      <span className="crumb-sep">/</span>
+      <span>Q3 audit</span>
+    </div>
+    <div className="topnav-spacer" />
+    <div className="nav-search">
+      <Icon name="search" size={13} />
+      <span>Search emails, threads, contacts…</span>
+      <span className="kbd">⌘K</span>
+    </div>
+    <button className="nav-icon-btn"><Icon name="bell" size={14} /></button>
+    <button className="nav-icon-btn"><Icon name="settings" size={14} /></button>
+    <div className="user-chip">
+      <span className="avatar">AK</span>
+      <span>Alex Keane</span>
+    </div>
+  </header>
+);
+
+const PrintHead = ({ view }) => (
+  <div className="ws-head">
+    <div className="ws-title">
+      {window.MailLensData.ACTIVE_EMAIL.subject}
+      <span className="from-pill">from marcus@northgate-capital.com</span>
+    </div>
+    <div style={{ flex: 1 }} />
+    <div className="seg">
+      <button className={`seg-btn ${view==='analyze' ? 'active' : ''}`}>
+        <Icon name="lens" size={12} /> Analyze
+      </button>
+      <button className={`seg-btn ${view==='thread' ? 'active' : ''}`}>
+        <Icon name="chat" size={12} /> Thread
+        <span style={{
+          fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 500,
+          padding: '0 5px', borderRadius: 4,
+          background: 'var(--bg-1)', color: 'var(--text-3)',
+          border: '1px solid var(--border)',
+        }}>5</span>
+      </button>
+    </div>
+    <div className="ws-actions">
+      <button className="btn-ghost"><Icon name="download" size={12} /> Export</button>
+      <button className="btn-ghost"><Icon name="x" size={12} /></button>
+    </div>
+  </div>
+);
+
+const PrintPage = ({ view }) => (
+  <div className="print-page">
+    <div className="print-app">
+      <PrintTopNav />
+      <div className="print-main">
+        <div className="print-sidebar"><Sidebar /></div>
+        <section className="print-workspace">
+          <PrintHead view={view} />
+          <div className="ws-body">
+            {view === 'analyze' ? <AnalyzeView /> : <ThreadView />}
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+);
+
+const PrintApp = () => (
+  <React.Fragment>
+    <PrintPage view="analyze" />
+    <PrintPage view="thread" />
+  </React.Fragment>
+);
+
+ReactDOM.createRoot(document.getElementById('root')).render(<PrintApp />);
+
+// Auto-print once fonts have loaded and Babel-rendered DOM is ready
+(async () => {
+  try {
+    if (document.fonts && document.fonts.ready) {
+      await document.fonts.ready;
+    }
+  } catch (e) {}
+  await new Promise(r => setTimeout(r, 800));
+  window.print();
+})();
+</script>
+</body>
+</html>

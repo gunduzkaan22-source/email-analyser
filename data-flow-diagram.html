@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>MailLens — Data Processing &amp; Security Overview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Barlow:wght@300;400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+@page { size: A4 landscape; margin: 0; }
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --navy-deep:  #06101e;
+  --navy:       #0d2040;
+  --navy-mid:   #183560;
+  --navy-light: #264d88;
+  --teal:       #1aa8b8;
+  --teal-bright:#2ec5d6;
+  --teal-pale:  #e5f7f9;
+  --gold:       #b8922c;
+  --gold-light: #d4aa4a;
+  --white:      #ffffff;
+  --off-white:  #f2f5fb;
+  --border:     #cad4e8;
+  --text:       #0d2040;
+  --muted:      #4a6282;
+}
+
+html, body {
+  width: 297mm;
+  height: 210mm;
+  overflow: hidden;
+  background: var(--white);
+}
+
+body {
+  font-family: 'Barlow', 'Helvetica Neue', sans-serif;
+  color: var(--text);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.page {
+  width: 297mm;
+  height: 210mm;
+  display: grid;
+  grid-template-rows: 21mm 1fr 42mm 9mm;
+  overflow: hidden;
+}
+
+/* ─── HEADER ─────────────────────────────── */
+.header {
+  background: var(--navy);
+  display: grid;
+  grid-template-columns: 52mm 1fr 52mm;
+  align-items: center;
+  padding: 0 10mm;
+  position: relative;
+  overflow: hidden;
+}
+.header::before {
+  content: '';
+  position: absolute;
+  right: -10mm; top: -10mm;
+  width: 60mm; height: 60mm;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(26,168,184,0.18) 0%, transparent 70%);
+}
+.header::after {
+  content: '';
+  position: absolute;
+  right: 10mm; bottom: -8mm;
+  width: 40mm; height: 40mm;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(26,168,184,0.08) 0%, transparent 70%);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 3mm;
+  z-index: 1;
+}
+.brand-mark {
+  width: 9mm; height: 9mm;
+  background: var(--teal);
+  border-radius: 1.8mm;
+  position: relative;
+  flex-shrink: 0;
+}
+.brand-mark::after {
+  content: '';
+  position: absolute;
+  inset: 2.2mm;
+  background: var(--navy);
+  border-radius: 0.7mm;
+}
+.brand-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 19pt;
+  font-weight: 700;
+  color: var(--white);
+  letter-spacing: 0.03em;
+}
+.brand-beta {
+  font-size: 6pt;
+  font-weight: 600;
+  background: var(--teal);
+  color: var(--navy-deep);
+  padding: 0.5mm 1.5mm;
+  border-radius: 0.8mm;
+  letter-spacing: 0.08em;
+  align-self: flex-start;
+  margin-top: 1mm;
+}
+
+.header-centre { text-align: center; z-index: 1; }
+.doc-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 15pt;
+  font-weight: 600;
+  color: var(--white);
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+}
+.doc-subtitle {
+  font-size: 7pt;
+  font-weight: 300;
+  color: rgba(255,255,255,0.55);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-top: 1.2mm;
+}
+
+.header-meta {
+  text-align: right;
+  z-index: 1;
+}
+.meta-row {
+  font-size: 7pt;
+  color: rgba(255,255,255,0.5);
+  line-height: 1.8;
+}
+.meta-row strong { color: rgba(255,255,255,0.8); font-weight: 600; }
+.meta-row.accent { color: var(--teal-bright); font-weight: 500; }
+
+/* ─── FLOW ───────────────────────────────── */
+.flow-section {
+  background: var(--off-white);
+  padding: 4.5mm 10mm 3mm;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5mm;
+}
+.flow-eyebrow {
+  font-size: 6.5pt;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.flow-row {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
+/* Node */
+.node {
+  flex: 0 0 37mm;
+  display: flex;
+  flex-direction: column;
+  border-radius: 2mm;
+  overflow: hidden;
+  box-shadow: 0 0.5mm 2.5mm rgba(13,32,64,0.14), 0 0 0 0.3mm rgba(13,32,64,0.06);
+}
+.node-head {
+  background: var(--navy);
+  padding: 3mm 3mm 2.5mm;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1mm;
+}
+.node-icon {
+  width: 8mm; height: 8mm;
+  border-radius: 1.5mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.node-icon svg { display: block; }
+.node-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 8pt;
+  font-weight: 700;
+  color: var(--white);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  text-align: center;
+  line-height: 1.1;
+}
+.node-sublabel {
+  font-size: 6pt;
+  color: rgba(255,255,255,0.5);
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+.node-body {
+  flex: 1;
+  background: var(--white);
+  border: 0.3mm solid var(--border);
+  border-top: none;
+  border-radius: 0 0 2mm 2mm;
+  padding: 2.5mm 3mm;
+  display: flex;
+  flex-direction: column;
+  gap: 1.8mm;
+}
+.node-fact {
+  display: flex;
+  gap: 1.5mm;
+  align-items: flex-start;
+}
+.nf-dot {
+  width: 1.4mm; height: 1.4mm;
+  background: var(--teal);
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 1.3mm;
+}
+.nf-text {
+  font-size: 6.5pt;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.nf-text b { color: var(--text); font-weight: 600; }
+.nf-text .no { color: #c0392b; font-weight: 600; }
+
+/* Gate node */
+.node.gate .node-head { background: linear-gradient(135deg, #8a6a1c, #c9a234); }
+.node.gate .node-sublabel { color: rgba(255,255,255,0.65); }
+.nf-dot.gold { background: var(--gold); }
+
+/* Connector */
+.connector {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.5mm;
+  gap: 1mm;
+  min-width: 0;
+  overflow: hidden;
+}
+.conn-line-wrap {
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+.conn-line {
+  flex: 1;
+  height: 0.4mm;
+  background: linear-gradient(90deg, var(--navy-mid), var(--teal));
+}
+.conn-arrow {
+  width: 0;
+  height: 0;
+  border-top: 1.5mm solid transparent;
+  border-bottom: 1.5mm solid transparent;
+  border-left: 2.5mm solid var(--teal);
+  flex-shrink: 0;
+}
+.conn-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.8mm;
+  background: var(--navy);
+  padding: 0.6mm 1.5mm;
+  border-radius: 0.8mm;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.conn-badge-dot {
+  width: 1.5mm; height: 1.5mm;
+  background: var(--teal);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.conn-badge-text {
+  font-size: 5pt;
+  font-weight: 700;
+  color: var(--teal-bright);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.conn-what {
+  font-size: 5.5pt;
+  font-weight: 600;
+  color: var(--navy-mid);
+  text-align: center;
+  line-height: 1.3;
+}
+.conn-detail {
+  font-size: 5pt;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.3;
+}
+
+/* ─── COMPLIANCE ─────────────────────────── */
+.compliance-section {
+  background: var(--navy-deep);
+  padding: 4.5mm 10mm;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6mm;
+  align-items: start;
+  position: relative;
+  overflow: hidden;
+}
+.compliance-section::before {
+  content: '';
+  position: absolute;
+  left: -20mm; bottom: -20mm;
+  width: 80mm; height: 80mm;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(26,168,184,0.06) 0%, transparent 70%);
+}
+
+.cg-label {
+  font-size: 6.5pt;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--teal-bright);
+  margin-bottom: 3mm;
+  padding-bottom: 1.5mm;
+  border-bottom: 0.3mm solid rgba(46,197,214,0.28);
+}
+.ci {
+  display: flex;
+  gap: 2mm;
+  align-items: flex-start;
+  margin-bottom: 2.2mm;
+}
+.ci:last-child { margin-bottom: 0; }
+.ci-tick {
+  width: 3.5mm; height: 3.5mm;
+  background: var(--teal);
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 0.5mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ci-tick svg { display: block; }
+.ci-text {
+  font-size: 7pt;
+  color: rgba(255,255,255,0.68);
+  line-height: 1.5;
+}
+.ci-text b { color: rgba(255,255,255,0.92); font-weight: 600; }
+
+/* ─── FOOTER ─────────────────────────────── */
+.footer {
+  background: var(--navy-mid);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10mm;
+}
+.footer-l {
+  font-size: 7pt;
+  color: rgba(255,255,255,0.6);
+  letter-spacing: 0.02em;
+}
+.footer-l b { color: rgba(255,255,255,0.85); font-weight: 600; }
+.footer-sep { color: rgba(255,255,255,0.25); margin: 0 2mm; }
+.footer-r {
+  font-size: 6.5pt;
+  color: rgba(255,255,255,0.38);
+  font-style: italic;
+}
+
+@media print {
+  html, body { width: 297mm; height: 210mm; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── Header ── -->
+  <div class="header">
+
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <span class="brand-name">MailLens</span>
+      <span class="brand-beta">BETA</span>
+    </div>
+
+    <div class="header-centre">
+      <div class="doc-title">Data Processing &amp; Security Overview</div>
+      <div class="doc-subtitle">Invoice Processing Data Flow — Compliance Reference Document</div>
+    </div>
+
+    <div class="header-meta">
+      <div class="meta-row">Version 1.0 &nbsp;·&nbsp; May 2026</div>
+      <div class="meta-row"><strong>Prepared for:</strong> Silver Sevket &amp; Co</div>
+      <div class="meta-row accent">CONFIDENTIAL</div>
+    </div>
+
+  </div>
+
+  <!-- ── Flow diagram ── -->
+  <div class="flow-section">
+    <div class="flow-eyebrow">End-to-End Data Flow</div>
+    <div class="flow-row">
+
+      <!-- Node 1 -->
+      <div class="node">
+        <div class="node-head">
+          <div class="node-icon" style="background:rgba(255,255,255,0.1)">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <rect x="2" y="1" width="11" height="14" rx="1.5" stroke="rgba(255,255,255,0.85)" stroke-width="1.2" fill="none"/>
+              <path d="M5 5h7M5 8h7M5 11h4" stroke="rgba(255,255,255,0.55)" stroke-width="0.9" stroke-linecap="round"/>
+              <path d="M10 1v4h4" stroke="rgba(255,255,255,0.4)" stroke-width="1" fill="none"/>
+            </svg>
+          </div>
+          <div class="node-label">Client Invoice</div>
+          <div class="node-sublabel">Origin · Client System</div>
+        </div>
+        <div class="node-body">
+          <div class="node-fact"><div class="nf-dot"></div><div class="nf-text"><b>Formats:</b> PDF, scanned image, email attachment</div></div>
+          <div class="node-fact"><div class="nf-dot"></div><div class="nf-text"><b>Location:</b> Client's own system or email client</div></div>
+          <div class="node-fact"><div class="nf-dot"></div><div class="nf-text"><b>At rest:</b> No MailLens storage at this stage</div></div>
+          <div class="node-fact"><div class="nf-dot"></div><div class="nf-text"><b>PII present:</b> Supplier names, amounts, addresses</div></div>
+        </div>
+      </div>
+
+      <!-- Connector 1→2 -->
+      <div class="connector">
+        <div class="conn-line-wrap"><div class="conn-line"></div><div class="conn-arrow"></div></div>
+        <div class="conn-badge"><div class="conn-badge-dot"></div><div class="conn-badge-text">TLS 1.2+</div></div>
+        <div class="conn-what">Upload / Paste</div>
+        <div class="conn-detail">Invoice text submitted by user</div>
+      </div>
+
+      <!-- Node 2 -->
+      <div class="node">
+        <div class="node-head">
+          <div class="node-icon" style="background:rgba(26,168,184,0.25)">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <circle cx="9" cy="9" r="6.5" stroke="var(--teal-bright)" stroke-width="1.2" fill="none"/>
+              <circle cx="9" cy="9" r="2.5" fill="var(--teal-bright)" opacity="0.8"/>
+              <path d="M9 2.5V5M9 13v2.5M2.5 9H5M13 9h2.5" stroke="var(--teal-bright)" stroke-width="0.9" stroke-linecap="round" opacity="0.5"/>
+            </svg>
+          </div>
+          <div class="node-label">MailLens App</div>
+          <div class="node-sublabel">maillens.uk · Supabase</div>
+        </div>
+        <div class="node-body">
+          <div class="node-fact"><div class="nf-dot"></div><div class="nf-text"><b>Receives:</b> Invoice text (user-submitted)</div></div>
+          <div class="node-fact"><div class="nf-dot"></div><div class="nf-text"><b>Auth:</b> Supabase magic-link, Row Level Security</div></div>
+          <div class="node-fact"><div class="nf-dot"></div><div class="nf-text"><b>Stores:</b> Analysis result only — auto-deleted after 90 days</div></div>
+          <div class="node-fact"><div class="nf-dot"></div><div class="nf-text"><b>Database:</b> EU-hosted (Ireland), encrypted at rest</div></div>
+        </div>
+      </div>
+
+      <!-- Connector 2→3 -->
+      <div class="connector">
+        <div class="conn-line-wrap"><div class="conn-line"></div><div class="conn-arrow"></div></div>
+        <div class="conn-badge"><div class="conn-badge-dot"></div><div class="conn-badge-text">TLS 1.2+</div></div>
+        <div class="conn-what">API Request</div>
+        <div class="conn-detail">Invoice text only · no metadata</div>
+      </div>
+
+      <!-- Node 3 -->
+      <div class="node">
+        <div class="node-head">
+          <div class="node-icon" style="background:rgba(255,255,255,0.08)">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <rect x="2" y="4" width="14" height="10" rx="2" stroke="rgba(255,255,255,0.8)" stroke-width="1.1" fill="none"/>
+              <circle cx="6" cy="9" r="1.5" fill="rgba(255,255,255,0.7)"/>
+              <circle cx="9" cy="9" r="1.5" fill="rgba(255,255,255,0.7)"/>
+              <circle cx="12" cy="9" r="1.5" fill="rgba(255,255,255,0.7)"/>
+              <path d="M6 4V2.5M9 4V2M12 4V2.5" stroke="rgba(255,255,255,0.4)" stroke-width="0.9" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="node-label">Anthropic Claude API</div>
+          <div class="node-sublabel">api.anthropic.com</div>
+        </div>
+        <div class="node-body">
+          <div class="node-fact"><div class="nf-dot"></div><div class="nf-text"><b>Processes:</b> Invoice text → structured extraction</div></div>
+          <div class="node-fact"><div class="nf-dot"></div><div class="nf-text"><b>Extracts:</b> Supplier · Amount · VAT · Due Date</div></div>
+          <div class="node-fact"><div class="nf-dot"></div><div class="nf-text"><b>Retains:</b> <span class="no">Nothing.</span> Zero data retained after response</div></div>
+          <div class="node-fact"><div class="nf-dot"></div><div class="nf-text"><b>Training:</b> API data is not used to train models</div></div>
+        </div>
+      </div>
+
+      <!-- Connector 3→4 -->
+      <div class="connector">
+        <div class="conn-line-wrap"><div class="conn-line"></div><div class="conn-arrow"></div></div>
+        <div class="conn-badge"><div class="conn-badge-dot"></div><div class="conn-badge-text">TLS 1.2+</div></div>
+        <div class="conn-what">Extraction Result</div>
+        <div class="conn-detail">Structured fields returned</div>
+      </div>
+
+      <!-- Node 4 — Gate -->
+      <div class="node gate">
+        <div class="node-head">
+          <div class="node-icon" style="background:rgba(0,0,0,0.15)">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <circle cx="9" cy="6.5" r="3" stroke="rgba(255,255,255,0.9)" stroke-width="1.1" fill="none"/>
+              <path d="M3 15.5c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="rgba(255,255,255,0.9)" stroke-width="1.1" stroke-linecap="round" fill="none"/>
+            </svg>
+          </div>
+          <div class="node-label">Human Approval</div>
+          <div class="node-sublabel">Mandatory Gate</div>
+        </div>
+        <div class="node-body">
+          <div class="node-fact"><div class="nf-dot gold"></div><div class="nf-text"><b>Reviewer sees:</b> Extracted fields + original invoice</div></div>
+          <div class="node-fact"><div class="nf-dot gold"></div><div class="nf-text"><b>Action:</b> Approve or reject each transaction individually</div></div>
+          <div class="node-fact"><div class="nf-dot gold"></div><div class="nf-text"><b>Audit log:</b> Timestamp + reviewer ID recorded</div></div>
+          <div class="node-fact"><div class="nf-dot gold"></div><div class="nf-text"><b>Guarantee:</b> No automated financial posting — ever</div></div>
+        </div>
+      </div>
+
+      <!-- Connector 4→5 -->
+      <div class="connector">
+        <div class="conn-line-wrap"><div class="conn-line"></div><div class="conn-arrow"></div></div>
+        <div class="conn-badge"><div class="conn-badge-dot"></div><div class="conn-badge-text">TLS 1.2+</div></div>
+        <div class="conn-what">Approved Only</div>
+        <div class="conn-detail">No raw invoice text transmitted</div>
+      </div>
+
+      <!-- Node 5 -->
+      <div class="node">
+        <div class="node-head">
+          <div class="node-icon" style="background:rgba(255,255,255,0.1)">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <rect x="2" y="2" width="14" height="14" rx="2" stroke="rgba(255,255,255,0.8)" stroke-width="1.1" fill="none"/>
+              <path d="M5 12l2.5-4 2.5 2 2.5-5" stroke="var(--teal-bright)" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="13" cy="5" r="1" fill="rgba(255,255,255,0.5)"/>
+            </svg>
+          </div>
+          <div class="node-label">QuickBooks</div>
+          <div class="node-sublabel">Intuit Platform</div>
+        </div>
+        <div class="node-body">
+          <div class="node-fact"><div class="nf-dot"></div><div class="nf-text"><b>Receives:</b> Approved bill record only</div></div>
+          <div class="node-fact"><div class="nf-dot"></div><div class="nf-text"><b>Data posted:</b> Supplier · Amount · VAT code · Due date</div></div>
+          <div class="node-fact"><div class="nf-dot"></div><div class="nf-text"><b>Raw invoice:</b> <span class="no">Never</span> transmitted to QuickBooks</div></div>
+          <div class="node-fact"><div class="nf-dot"></div><div class="nf-text"><b>Access:</b> OAuth 2.0, scoped to bill creation only</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Compliance panel ── -->
+  <div class="compliance-section">
+
+    <div>
+      <div class="cg-label">Encryption &amp; Access Controls</div>
+      <div class="ci">
+        <div class="ci-tick"><svg width="7" height="7" viewBox="0 0 7 7" fill="none"><path d="M1.5 3.5l1.5 1.5 3-3" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="ci-text">All data transmitted via <b>TLS 1.2+ encryption</b> at every stage of the pipeline without exception</div>
+      </div>
+      <div class="ci">
+        <div class="ci-tick"><svg width="7" height="7" viewBox="0 0 7 7" fill="none"><path d="M1.5 3.5l1.5 1.5 3-3" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="ci-text">Session cookies set <b>Secure, HttpOnly, SameSite=Strict</b> — no cross-site session leakage</div>
+      </div>
+      <div class="ci">
+        <div class="ci-tick"><svg width="7" height="7" viewBox="0 0 7 7" fill="none"><path d="M1.5 3.5l1.5 1.5 3-3" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="ci-text">Database access protected by <b>Row Level Security</b> — your account can only access your firm's records</div>
+      </div>
+      <div class="ci">
+        <div class="ci-tick"><svg width="7" height="7" viewBox="0 0 7 7" fill="none"><path d="M1.5 3.5l1.5 1.5 3-3" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="ci-text"><b>Content Security Policy</b> enforced — no external scripts, no third-party font CDNs</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="cg-label">Data Retention &amp; Processor Terms</div>
+      <div class="ci">
+        <div class="ci-tick"><svg width="7" height="7" viewBox="0 0 7 7" fill="none"><path d="M1.5 3.5l1.5 1.5 3-3" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="ci-text"><b>Anthropic does not retain API data for model training</b> — confirmed in commercial usage terms</div>
+      </div>
+      <div class="ci">
+        <div class="ci-tick"><svg width="7" height="7" viewBox="0 0 7 7" fill="none"><path d="M1.5 3.5l1.5 1.5 3-3" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="ci-text">Invoice analysis data <b>automatically deleted after 90 days</b>; manual deletion available immediately via in-app controls</div>
+      </div>
+      <div class="ci">
+        <div class="ci-tick"><svg width="7" height="7" viewBox="0 0 7 7" fill="none"><path d="M1.5 3.5l1.5 1.5 3-3" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="ci-text"><b>Anthropic DPA:</b> Incorporated into Commercial Terms of Service — available at anthropic.com/legal</div>
+      </div>
+      <div class="ci">
+        <div class="ci-tick"><svg width="7" height="7" viewBox="0 0 7 7" fill="none"><path d="M1.5 3.5l1.5 1.5 3-3" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="ci-text"><b>Supabase DPA</b> in place; database hosted EU (Ireland) with SOC 2 Type II certification</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="cg-label">Regulatory &amp; User Rights</div>
+      <div class="ci">
+        <div class="ci-tick"><svg width="7" height="7" viewBox="0 0 7 7" fill="none"><path d="M1.5 3.5l1.5 1.5 3-3" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="ci-text"><b>ICO Registration: C1928867</b> (pending confirmation) — registered data controller under UK GDPR</div>
+      </div>
+      <div class="ci">
+        <div class="ci-tick"><svg width="7" height="7" viewBox="0 0 7 7" fill="none"><path d="M1.5 3.5l1.5 1.5 3-3" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="ci-text">GDPR rights implemented in-product: <b>Access · Deletion · Export · Correction</b> (Articles 15–20, UK GDPR)</div>
+      </div>
+      <div class="ci">
+        <div class="ci-tick"><svg width="7" height="7" viewBox="0 0 7 7" fill="none"><path d="M1.5 3.5l1.5 1.5 3-3" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="ci-text"><b>Human approval required</b> before any transaction reaches QuickBooks — no fully automated financial posting</div>
+      </div>
+      <div class="ci">
+        <div class="ci-tick"><svg width="7" height="7" viewBox="0 0 7 7" fill="none"><path d="M1.5 3.5l1.5 1.5 3-3" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="ci-text">Privacy Notice published at <b>maillens.uk/privacy</b> — plain-language, no legal jargon</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Footer ── -->
+  <div class="footer">
+    <div class="footer-l">
+      <b>Prepared by Kaan Gunduz | AI Consultant</b>
+      <span class="footer-sep">·</span>
+      maillens.uk
+      <span class="footer-sep">·</span>
+      maillens.contact@gmail.com
+    </div>
+    <div class="footer-r">Compliance reference document · May 2026 · Confidential — prepared for Silver Sevket &amp; Co</div>
+  </div>
+
+</div>
+</body>
+</html>

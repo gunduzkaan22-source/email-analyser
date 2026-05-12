@@ -144,6 +144,10 @@
               Thread
               <span id="threadCountBadge" style="display:none;font-family:var(--font-mono);font-size:10px;font-weight:500;padding:0 5px;border-radius:4px;background:var(--bg-1);color:var(--text-3);border:1px solid var(--border)"></span>
             </button>
+            <button class="seg-btn" id="modeCompose">
+              <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10.5V13h2.5l7-7L9 3.5l-7 7z"/><path d="M11.5 2l2.5 2.5"/></svg>
+              Compose
+            </button>
           </div>
           <button class="btn-ghost btn-sm" id="wsExportBtn" title="Export to Excel">
             <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9M5 8l3 3 3-3"/><path d="M3 13h10"/></svg>
@@ -408,6 +412,84 @@
             </div>
           </div><!-- /threadView -->
 
+          <!-- Compose panel -->
+          <div class="compose-panel" id="composePanel" style="display:none">
+            <div class="card" style="padding:20px 24px">
+              <div class="compose-recipient-row">
+                <div class="compose-avatar" id="composeAvatar">✉</div>
+                <div style="flex:1">
+                  <input type="text" id="composeRecipient" class="compose-recipient-input" placeholder="To (optional — e.g. Sarah, the team, my manager)" autocomplete="off" maxlength="80" />
+                  <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-4);margin-top:1px">→ composing new email</div>
+                </div>
+              </div>
+              <textarea id="composeDescription" class="compose-textarea" placeholder="Describe the email you want to write… (e.g. 'Follow up with John about the Q3 proposal, mention the deadline is Friday and ask if he needs any more info')"></textarea>
+              <div class="error-box" id="composeErrorBox"></div>
+              <div class="tone-bar" style="margin-top:12px;border-radius:8px;border:1px solid var(--border)">
+                <span class="tone-label">Tone</span>
+                <div class="tone-pills">
+                  <button class="tone-pill compose-tone-pill active" data-tone="Professional"><span class="swatch"></span>Professional</button>
+                  <button class="tone-pill compose-tone-pill" data-tone="Friendly"><span class="swatch"></span>Friendly</button>
+                  <button class="tone-pill compose-tone-pill" data-tone="Formal"><span class="swatch"></span>Formal</button>
+                  <button class="tone-pill compose-tone-pill" data-tone="Concise"><span class="swatch"></span>Concise</button>
+                  <button class="tone-pill compose-tone-pill" data-tone="Empathetic"><span class="swatch"></span>Empathetic</button>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:flex-end;margin-top:12px">
+                <button class="btn-primary" id="composeBtn">
+                  <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10.5V13h2.5l7-7L9 3.5l-7 7z"/><path d="M11.5 2l2.5 2.5"/></svg>
+                  Write Email
+                  <div class="btn-spinner" id="composeSpinner" style="display:none"></div>
+                </button>
+              </div>
+            </div>
+          </div><!-- /composePanel -->
+
+          <!-- Compose loading skeleton -->
+          <div class="compose-loading" id="composeLoading" style="display:none">
+            <div class="skel" style="height:18px;width:38%;margin-bottom:12px;border-radius:6px"></div>
+            <div class="skel" style="height:14px;width:100%;margin-bottom:7px;border-radius:4px"></div>
+            <div class="skel" style="height:14px;width:94%;margin-bottom:7px;border-radius:4px"></div>
+            <div class="skel" style="height:14px;width:82%;border-radius:4px"></div>
+          </div>
+
+          <!-- Compose result -->
+          <div class="compose-result" id="composeResult" style="display:none">
+            <div class="compose-subject-card">
+              <div class="compose-subject-meta">
+                <span class="compose-subject-label">Subject</span>
+                <button class="btn-ghost btn-sm" id="copyComposeSubjectBtn" title="Copy subject">
+                  <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="9" height="9" rx="1.5"/><path d="M3 12V3h9"/></svg>
+                  Copy subject
+                </button>
+              </div>
+              <div class="compose-subject-text" id="composeSubject"></div>
+            </div>
+            <div class="card" style="padding:20px 24px;margin-top:10px">
+              <div class="compose-body-header">
+                <span class="compose-body-label">Email body</span>
+                <button class="btn-ghost btn-sm" id="copyComposeBodyBtn" title="Copy body">
+                  <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="9" height="9" rx="1.5"/><path d="M3 12V3h9"/></svg>
+                  Copy
+                </button>
+              </div>
+              <div class="compose-body-text" id="composeBody"></div>
+              <div class="compose-result-actions">
+                <button class="btn-ghost btn-sm" id="copyComposeAllBtn">
+                  <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="9" height="9" rx="1.5"/><path d="M3 12V3h9"/></svg>
+                  Copy all
+                </button>
+                <button class="btn-ghost btn-sm" id="regenerateComposeBtn">
+                  <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8A5.5 5.5 0 1 1 8 2.5"/><path d="M11 2.5h2.5V5"/></svg>
+                  Regenerate
+                </button>
+                <button class="btn-ghost btn-sm" id="composeEditBtn">
+                  <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10.5V13h2.5l7-7L9 3.5l-7 7z"/><path d="M11.5 2l2.5 2.5"/></svg>
+                  Edit prompt
+                </button>
+              </div>
+            </div>
+          </div><!-- /composeResult -->
+
         </div><!-- /ws-inner -->
       </div><!-- /ws-body -->
     </div><!-- /workspace -->
@@ -429,6 +511,9 @@ let isThreadMode        = false;
 let lastAnalysisResult  = null;
 let searchQuery         = '';
 let doneActions         = new Set();
+let isComposeMode       = false;
+let composeTone         = 'Professional';
+let composeToneCache    = {};
 
 /* ── Accent colour system ── */
 const ACCENT_HUES = {
@@ -520,6 +605,9 @@ function wsScroll(top) {
 function setModeUI(mode) {
   document.getElementById('modeAnalyse').classList.toggle('active', mode === 'analyse');
   document.getElementById('modeThread').classList.toggle('active', mode === 'thread');
+  document.getElementById('modeCompose').classList.toggle('active', mode === 'compose');
+  const titles = { analyse: 'Analyse Email', thread: 'Email Thread', compose: 'Compose Email' };
+  document.getElementById('wsTitle').textContent = titles[mode] || 'Analyse Email';
 }
 
 function updateThreadBadge() {
@@ -796,6 +884,119 @@ async function setTone(tone) {
   }
 }
 
+/* ── Compose ── */
+function showComposeMode() {
+  isComposeMode = true;
+  document.getElementById('inputPanel').style.display = 'none';
+  document.getElementById('results').classList.remove('visible');
+  document.getElementById('loadingCard').classList.remove('visible');
+  document.getElementById('threadActionsBar').classList.remove('visible');
+  document.getElementById('threadView').classList.remove('visible');
+  document.getElementById('composePanel').style.display = '';
+  document.getElementById('composeLoading').style.display = 'none';
+  document.getElementById('composeResult').style.display = 'none';
+  setModeUI('compose');
+}
+
+function setComposeTone(tone) {
+  composeTone = tone;
+  document.querySelectorAll('.compose-tone-pill').forEach(p =>
+    p.classList.toggle('active', p.dataset.tone === tone)
+  );
+  const description = document.getElementById('composeDescription').value.trim();
+  const recipient   = document.getElementById('composeRecipient').value.trim();
+  const cacheKey    = tone + ':' + description + ':' + recipient;
+  if (composeToneCache[cacheKey] && document.getElementById('composeResult').style.display !== 'none') {
+    showComposeResult(composeToneCache[cacheKey]);
+  }
+}
+
+function showComposeResult(data) {
+  document.getElementById('composeSubject').textContent = data.subject || '';
+  const bodyEl = document.getElementById('composeBody');
+  bodyEl.textContent = '';
+  (data.body || '').split('\n').forEach(function(line, i, arr) {
+    bodyEl.appendChild(document.createTextNode(line));
+    if (i < arr.length - 1) bodyEl.appendChild(document.createElement('br'));
+  });
+  document.getElementById('composeResult').style.display = '';
+  wsScroll(0);
+}
+
+async function composeEmail() {
+  const description = document.getElementById('composeDescription').value.trim();
+  if (!description) {
+    const eb = document.getElementById('composeErrorBox');
+    eb.textContent = 'Please describe the email you want to write.';
+    eb.classList.add('visible');
+    return;
+  }
+
+  const tone      = composeTone;
+  const recipient = document.getElementById('composeRecipient').value.trim();
+  const cacheKey  = tone + ':' + description + ':' + recipient;
+
+  if (composeToneCache[cacheKey]) {
+    showComposeResult(composeToneCache[cacheKey]);
+    return;
+  }
+
+  document.getElementById('composeErrorBox').classList.remove('visible');
+  document.getElementById('composePanel').style.display = 'none';
+  document.getElementById('composeLoading').style.display = '';
+  document.getElementById('composeResult').style.display = 'none';
+
+  try {
+    const res  = await fetch('/compose', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ description, tone, recipient }),
+    });
+    const data = await res.json();
+    document.getElementById('composeLoading').style.display = 'none';
+
+    if (data.error) {
+      document.getElementById('composePanel').style.display = '';
+      const eb = document.getElementById('composeErrorBox');
+      eb.textContent = data.error;
+      eb.classList.add('visible');
+    } else {
+      composeToneCache[cacheKey] = data;
+      document.getElementById('composePanel').style.display = '';
+      showComposeResult(data);
+    }
+  } catch (_) {
+    document.getElementById('composeLoading').style.display = 'none';
+    document.getElementById('composePanel').style.display = '';
+    const eb = document.getElementById('composeErrorBox');
+    eb.textContent = 'Something went wrong. Please try again.';
+    eb.classList.add('visible');
+  }
+}
+
+function regenerateCompose() {
+  const description = document.getElementById('composeDescription').value.trim();
+  const recipient   = document.getElementById('composeRecipient').value.trim();
+  const cacheKey    = composeTone + ':' + description + ':' + recipient;
+  delete composeToneCache[cacheKey];
+  document.getElementById('composeResult').style.display = 'none';
+  composeEmail();
+}
+
+function composeEditPrompt() {
+  document.getElementById('composeResult').style.display = 'none';
+  document.getElementById('composePanel').style.display = '';
+}
+
+function copyCompose(text, btnId) {
+  const finish = (ok) => {
+    if (ok) showToast('Copied to clipboard');
+    else showToast('Copy failed — please select the text manually');
+  };
+  if (navigator.clipboard) { navigator.clipboard.writeText(text).then(() => finish(true)).catch(() => finish(false)); }
+  else { finish(false); }
+}
+
 /* ── Copy reply ── */
 function copyReply() {
   const text = document.getElementById('replyVal').textContent;
@@ -835,6 +1036,13 @@ function resetAll() {
   document.getElementById('threadActionsBar').classList.remove('visible');
   document.getElementById('threadView').classList.remove('visible');
   document.getElementById('modeThread').disabled = true;
+  document.getElementById('inputPanel').style.display = '';
+  document.getElementById('composePanel').style.display = 'none';
+  document.getElementById('composeLoading').style.display = 'none';
+  document.getElementById('composeResult').style.display = 'none';
+  document.getElementById('composeErrorBox').classList.remove('visible');
+  isComposeMode   = false;
+  composeToneCache = {};
   setModeUI('analyse');
   renderHistory();
   wsScroll(0);
@@ -1581,6 +1789,7 @@ document.addEventListener('keydown', function(e) {
 
   on('modeAnalyse', 'click', resetAll);
   on('modeThread',  'click', startThread);
+  on('modeCompose', 'click', showComposeMode);
 
   on('wsExportBtn', 'click', exportToExcel);
   on('wsCloseBtn',  'click', resetAll);
@@ -1606,6 +1815,14 @@ document.addEventListener('keydown', function(e) {
   on('threadActionsNewBtn',  'click', newAnalysis);
   on('threadHeadNewBtn',     'click', newAnalysis);
   on('threadAnalyseBtn',     'click', analyseThreadEmail);
+
+  on('composeBtn',            'click', composeEmail);
+  on('regenerateComposeBtn',  'click', regenerateCompose);
+  on('composeEditBtn',        'click', composeEditPrompt);
+  on('copyComposeSubjectBtn', 'click', () => copyCompose(document.getElementById('composeSubject').textContent, 'copyComposeSubjectBtn'));
+  on('copyComposeBodyBtn',    'click', () => copyCompose(document.getElementById('composeBody').textContent, 'copyComposeBodyBtn'));
+  on('copyComposeAllBtn',     'click', () => copyCompose('Subject: ' + document.getElementById('composeSubject').textContent + '\n\n' + document.getElementById('composeBody').textContent, 'copyComposeAllBtn'));
+  qsa('.compose-tone-pill',   'click', e => setComposeTone(e.currentTarget.dataset.tone));
 })();
 
 loadHistory();

@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Premortem Analysis — MailLens AI Consulting Pitch</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0d0f12;
+    --surface:   #141720;
+    --surface2:  #1c2030;
+    --border:    #2a2f3d;
+    --text:      #e2e6f0;
+    --muted:     #8090aa;
+    --red:       #e05555;
+    --orange:    #d97c2e;
+    --yellow:    #c9a834;
+    --teal:      #3dadb5;
+    --green:     #4caf82;
+    --critical:  #e05555;
+    --high:      #d97c2e;
+    --medium:    #c9a834;
+    --low:       #4caf82;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-size: 15px;
+    line-height: 1.65;
+    padding: 40px 24px 80px;
+  }
+
+  .page { max-width: 860px; margin: 0 auto; }
+
+  /* ── Header ── */
+  .report-header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 28px;
+    margin-bottom: 40px;
+  }
+  .report-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 12px;
+  }
+  .report-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+    line-height: 1.2;
+  }
+  .report-meta {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* ── Original plan ── */
+  .plan-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--muted);
+    border-radius: 6px;
+    padding: 20px 24px;
+    margin-bottom: 48px;
+  }
+  .plan-box-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .plan-box p { color: var(--text); font-size: 14px; line-height: 1.7; }
+
+  /* ── Section titles ── */
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 24px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── Failure mode cards ── */
+  .failure-grid { display: flex; flex-direction: column; gap: 24px; margin-bottom: 56px; }
+
+  .failure-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .failure-card-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+  .failure-number {
+    width: 26px; height: 26px;
+    background: var(--border);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+  .failure-name { font-weight: 600; font-size: 15px; }
+  .failure-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 18px; }
+
+  .field-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .story-text { font-size: 14px; color: var(--text); line-height: 1.75; }
+
+  .assumption-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-style: italic;
+    color: #c0c8dc;
+  }
+
+  .warnings { display: flex; flex-direction: column; gap: 10px; }
+  .warning-item {
+    display: flex;
+    gap: 10px;
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+  .warning-dot {
+    width: 7px; height: 7px;
+    background: var(--yellow);
+    border-radius: 50%;
+    margin-top: 7px;
+    flex-shrink: 0;
+  }
+
+  /* ── Synthesis ── */
+  .synthesis { margin-bottom: 56px; display: flex; flex-direction: column; gap: 20px; }
+
+  .synth-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 22px 24px;
+  }
+  .synth-card.most-likely  { border-left: 3px solid var(--orange); }
+  .synth-card.most-danger  { border-left: 3px solid var(--red); }
+  .synth-card.hidden       { border-left: 3px solid var(--teal); }
+  .synth-card.revised      { border-left: 3px solid var(--green); }
+
+  .synth-tag {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .synth-card.most-likely  .synth-tag { color: var(--orange); }
+  .synth-card.most-danger  .synth-tag { color: var(--red); }
+  .synth-card.hidden       .synth-tag { color: var(--teal); }
+  .synth-card.revised      .synth-tag { color: var(--green); }
+
+  .synth-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+  .synth-body  { font-size: 14px; color: #c0c8dc; line-height: 1.75; }
+  .synth-body + .synth-body { margin-top: 10px; }
+
+  .revised-steps { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+  .revised-steps li {
+    display: flex; gap: 10px;
+    font-size: 14px; color: #c0c8dc; line-height: 1.6;
+  }
+  .step-num {
+    width: 22px; height: 22px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: var(--green);
+    flex-shrink: 0; margin-top: 1px;
+  }
+
+  /* ── Checklist ── */
+  .checklist-section { margin-bottom: 56px; }
+  .checklist {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .checklist-intro {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    font-style: italic;
+  }
+  .check-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .check-item input[type="checkbox"] {
+    appearance: none;
+    width: 18px; height: 18px;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg);
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-top: 2px;
+    transition: background 0.15s, border-color 0.15s;
+    position: relative;
+  }
+  .check-item input[type="checkbox"]:checked {
+    background: var(--green);
+    border-color: var(--green);
+  }
+  .check-item input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    left: 4px; top: 1px;
+    width: 6px; height: 10px;
+    border: 2px solid #fff;
+    border-top: none; border-left: none;
+    transform: rotate(45deg);
+  }
+  .check-label { font-size: 14px; color: var(--text); line-height: 1.6; cursor: pointer; }
+  .check-label strong { color: var(--text); }
+
+  /* ── Footer ── */
+  .report-footer {
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="report-header">
+    <div class="report-label">&#9888; Premortem Analysis</div>
+    <div class="report-title">AI Invoice Processing Pitch — Silver Sevket &amp; Co</div>
+    <div class="report-meta">Prepared: 10 May 2026 &nbsp;&#183;&nbsp; Scenario: 6 months post-launch, the engagement failed &nbsp;&#183;&nbsp; 7 failure modes analysed</div>
+  </div>
+
+  <!-- Original plan -->
+  <div class="plan-box">
+    <div class="plan-box-label">Original Plan</div>
+    <p>A solutions consultant (learning AI tools, no prior clients) is pitching an AI consulting service to Silver Sevket &amp; Co, a UK accounting firm based in Croydon with two offices. They use QuickBooks. The plan: build an invoice processing tool that reads incoming invoices, extracts supplier name, amount, VAT, and due date using Claude AI, and books transactions to QuickBooks automatically with a human approval step. Price: £299/month. Meeting in the next few weeks.</p>
+  </div>
+
+  <!-- Failure modes -->
+  <div class="section-title">Failure Modes — How It Actually Went Wrong</div>
+  <div class="failure-grid">
+
+    <!-- 1 -->
+    <div class="failure-card">
+      <div class="failure-card-header">
+        <div class="failure-number">1</div>
+        <div class="failure-name">QuickBooks API Integration Complexity</div>
+      </div>
+      <div class="failure-body">
+        <div>
+          <div class="field-label">Story</div>
+          <div class="story-text">After signing the deal in week one, the builder registered for the QuickBooks Online API and immediately discovered that posting a bill required navigating vendor lookup or creation, currency handling, account code mapping to the firm's specific chart of accounts, and a multi-step OAuth 2.0 token refresh flow — none of which had been scoped during the pitch. Weeks two through four were consumed trying to map Claude's extracted line items to QuickBooks' <code>Bill</code> and <code>BillPayment</code> objects, which required resolving supplier names against existing QuickBooks vendor records and assigning each line to an account ID the firm's accountant had to provide manually. The "confirm and post" button had become a data-entry form to handle mismatches between extracted supplier names and QuickBooks vendor IDs, breaking the core promise of automation. The client, given a live demo date in month two, sat through two postponed demos and a third that showed invoices extracted correctly but failing silently on the QuickBooks write step due to a sandbox-to-production credential mismatch. By month four, Silver Sevket &amp; Co stopped responding to rescheduling requests and cancelled after paying for only two months.</div>
+        </div>
+        <div>
+          <div class="field-label">Broken Assumption</div>
+          <div class="assumption-box">We assumed that posting an approved invoice to QuickBooks was a single API call that accepted structured invoice data, when in fact it required resolving or creating a matching vendor record, mapping each line item to a client-specific account code, and maintaining a valid OAuth token — each a separate integration problem.</div>
+        </div>
+        <div>
+          <div class="field-label">Early Warning Signs</div>
+          <div class="warnings">
+            <div class="warning-item"><div class="warning-dot"></div><div>In week two, the builder could not complete a test bill posting in the QuickBooks sandbox without first asking the firm's accountant for their chart-of-accounts codes — proving the tool had no autonomous path to completing a booking.</div></div>
+            <div class="warning-item"><div class="warning-dot"></div><div>By week three, the Postman test collection for the QuickBooks API contained more calls for vendor search, vendor create, and account lookup than for the actual bill creation endpoint itself — the supporting resolution logic had grown larger than the core feature.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2 -->
+    <div class="failure-card">
+      <div class="failure-card-header">
+        <div class="failure-number">2</div>
+        <div class="failure-name">No Prior Clients / No Credibility</div>
+      </div>
+      <div class="failure-body">
+        <div>
+          <div class="field-label">Story</div>
+          <div class="story-text">The initial meeting went well — the demo ran cleanly and the senior partner appeared engaged when Claude extracted VAT figures from a sample invoice in seconds. The collapse came when the partner asked a single question: "Which other practices are using this?" The consultant had no answer, then pivoted to a free pilot offer, which was politely declined: the firm couldn't afford to be a guinea pig with client financial data given their ICAEW obligations and professional indemnity insurance requirements. A follow-up email offered case studies "from similar industries," but the partner never replied. Six months later, the deal sat dead in a CRM with the status "nurturing."</div>
+        </div>
+        <div>
+          <div class="field-label">Broken Assumption</div>
+          <div class="assumption-box">We assumed a polished demo and a compelling ROI calculation would be sufficient to establish trust with a regulated professional services firm that had fiduciary duties to its clients and reputational risk it could not delegate to an unproven vendor.</div>
+        </div>
+        <div>
+          <div class="field-label">Early Warning Signs</div>
+          <div class="warnings">
+            <div class="warning-item"><div class="warning-dot"></div><div>In week two, the practice manager sent a vendor questionnaire with fields for "number of current UK accountancy firm clients," "professional indemnity insurance certificate," and "data processing agreement reference" — all left blank or filled with placeholder language.</div></div>
+            <div class="warning-item"><div class="warning-dot"></div><div>In week five, the senior partner accidentally CC'd the consultant on an internal email asking whether the vendor was registered with the ICO, whether the AI retained client data for training, and whether the integration had been reviewed under the firm's outsourcing risk policy. None of the three questions had clear answers.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3 -->
+    <div class="failure-card">
+      <div class="failure-card-header">
+        <div class="failure-number">3</div>
+        <div class="failure-name">GDPR / Data Protection / Professional Liability</div>
+      </div>
+      <div class="failure-body">
+        <div>
+          <div class="field-label">Story</div>
+          <div class="story-text">Silver Sevket &amp; Co signed up in month one, but during onboarding the firm's data protection contact raised a formal objection when she reviewed the data flow diagram showing invoice data being transmitted to Anthropic's API. She pointed out that under UK GDPR Article 28, Anthropic must be engaged as a named Data Processor under a written DPA — the generic API terms did not qualify. A senior partner then escalated further: the invoices contained personal data belonging to the firm's own clients (sole traders, small-business owners whose names and financial details appeared on supplier invoices), meaning Silver Sevket was processing third-party personal data with no lawful basis documented in their client engagement letters. The firm's ICAEW compliance officer added that a data breach at Anthropic could trigger ICO enforcement and professional indemnity claims not covered under their existing PI insurance. The deal collapsed four weeks into onboarding when the firm's solicitors advised the current data architecture created unacceptable liability exposure.</div>
+        </div>
+        <div>
+          <div class="field-label">Broken Assumption</div>
+          <div class="assumption-box">We assumed that routing client financial data through Anthropic's API was a technical implementation detail rather than a regulated data-processing arrangement requiring formal legal agreements, documented lawful bases, a DPIA, and updated client privacy notices before a single invoice could be processed.</div>
+        </div>
+        <div>
+          <div class="field-label">Early Warning Signs</div>
+          <div class="warnings">
+            <div class="warning-item"><div class="warning-dot"></div><div>During the pitch, when asked "where does invoice data go and who stores it?", the consultant gave a vague answer about "the cloud" and could not name Anthropic's data centre location or confirm whether data was retained for training — the exact questions that trigger a mandatory DPIA under UK GDPR Article 35.</div></div>
+            <div class="warning-item"><div class="warning-dot"></div><div>The firm's standard client engagement letter and privacy notice made no mention of sub-processors or third-party AI tools — a red flag visible on the first day of onboarding that processing through Anthropic would be a material undisclosed change to client data subjects.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 -->
+    <div class="failure-card">
+      <div class="failure-card-header">
+        <div class="failure-number">4</div>
+        <div class="failure-name">Extraction Accuracy Insufficient for Regulated Finance</div>
+      </div>
+      <div class="failure-body">
+        <div>
+          <div class="field-label">Story</div>
+          <div class="story-text">Claude performed well on clean digital PDFs from large suppliers, but the firm's invoice mix included scanned paper invoices from tradespeople, handwritten credit notes, and multi-page PDFs from recruitment agencies with embedded tables. Specific failures: Claude confused subtotals with VAT-inclusive totals; misread due dates on invoices that printed both an invoice date and "Net 30" without a calculated date; and conflated two suppliers with similar names when their details appeared on the same scanned page. The human approval step devolved into rubber-stamping within three weeks — approvals averaged under 8 seconds per invoice. A £4,200 VAT amount was approved as £420, causing an underpayment that triggered an HMRC late VAT return notice. The senior partner lost confidence entirely when he discovered the approval log showed confirmed entries that contradicted original invoice scans — the audit trail proved the human check had not been a genuine review.</div>
+        </div>
+        <div>
+          <div class="field-label">Broken Assumption</div>
+          <div class="assumption-box">We assumed a human approval step would function as a reliable quality gate, when in practice approval interfaces that optimise for throughput create cognitive conditions — time pressure, repetition, visual fatigue — that systematically degrade human error-catching rather than compensating for AI errors.</div>
+        </div>
+        <div>
+          <div class="field-label">Early Warning Signs</div>
+          <div class="warnings">
+            <div class="warning-item"><div class="warning-dot"></div><div>By week three, average approval time had dropped from ~25 seconds to under 10 seconds and the rejection rate had fallen from 12% to under 2% — not because accuracy had improved, but because the approver had learned to click through faster.</div></div>
+            <div class="warning-item"><div class="warning-dot"></div><div>Confidence scores for scanned invoices averaged 0.61 vs 0.89 for digital PDFs, and several low-confidence items were being approved without escalation — the model itself was signalling uncertainty and no one was acting on it.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5 -->
+    <div class="failure-card">
+      <div class="failure-card-header">
+        <div class="failure-number">5</div>
+        <div class="failure-name">Pricing Misalignment</div>
+      </div>
+      <div class="failure-body">
+        <div>
+          <div class="field-label">Story</div>
+          <div class="story-text">Silver Sevket &amp; Co signed at £299/month because the price felt low enough to approve without scrutiny — a trial-tier decision, not a strategic one. When minor issues arose, the firm's attitude was "it's only £299" rather than investing in feedback loops, so quality never improved. On the builder's side, the unit economics were quietly catastrophic: the QuickBooks partner programme charged roughly £40–£80/month for one connected firm, Claude API costs at 200–400 invoices/month ran to £30–£60/month, and support consumed four to six evening hours a month. By month three the builder was netting under £150 after direct costs with no budget to fix anything. By month five, they let the QuickBooks developer subscription lapse to save cash, the integration broke, and Silver Sevket cancelled without a second conversation.</div>
+        </div>
+        <div>
+          <div class="field-label">Broken Assumption</div>
+          <div class="assumption-box">We assumed £299/month was viable because it felt affordable to a small firm, without modelling actual margin after API fees, platform costs, and support hours — and without recognising that a price that low would signal "disposable experiment" rather than "business-critical infrastructure."</div>
+        </div>
+        <div>
+          <div class="field-label">Early Warning Signs</div>
+          <div class="warnings">
+            <div class="warning-item"><div class="warning-dot"></div><div>In weeks two through four, Silver Sevket designated a junior bookkeeper — with no authority to escalate improvement requests — as the day-to-day contact, signalling the firm had categorised the product as a low-stakes add-on.</div></div>
+            <div class="warning-item"><div class="warning-dot"></div><div>By week six, API and platform fees were already at £110–£130 for the month against £299 revenue, with ~5 hours of evening support consumed — making the margin arithmetic obviously unsustainable before any growth.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6 -->
+    <div class="failure-card">
+      <div class="failure-card-header">
+        <div class="failure-number">6</div>
+        <div class="failure-name">Human Approval Step Kills Perceived Value</div>
+      </div>
+      <div class="failure-body">
+        <div>
+          <div class="field-label">Story</div>
+          <div class="story-text">The firm assigned a junior bookkeeper at each office to handle the daily approval queue. In practice, because bookkeepers are professionally accountable for accuracy, they opened the source PDF on every single invoice before clicking Approve — a habit ingrained by years of double-entry discipline. At 40 invoices/day across two sites, this worked out to 45–50 minutes per bookkeeper per day, compared to 35–40 minutes of direct QuickBooks entry in their old process. By week eight both bookkeepers were complaining the new system was slower. The decision to cancel came from the senior partner after the month-three invoice, when office managers confirmed: no headcount reduced, no errors caught by the AI that staff wouldn't have caught anyway, £299/month pure overhead.</div>
+        </div>
+        <div>
+          <div class="field-label">Broken Assumption</div>
+          <div class="assumption-box">We assumed that "human approval" would be a light-touch final check lasting seconds per invoice, not recognising that professionally trained accounts staff in a regulated environment would treat every approval as a full verification because their name was attached to the posting.</div>
+        </div>
+        <div>
+          <div class="field-label">Early Warning Signs</div>
+          <div class="warnings">
+            <div class="warning-item"><div class="warning-dot"></div><div>In weeks 1–3, session-log data showed average approval times of 60–90 seconds per invoice — users were clearly context-switching to the source PDF on every transaction, not trusting the AI extraction.</div></div>
+            <div class="warning-item"><div class="warning-dot"></div><div>By weeks 4–6, bookkeepers were requesting to "batch-approve" certain invoice types or skip the portal entirely on busy days — a clear signal the workflow had been categorised as friction, not relief.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7 -->
+    <div class="failure-card">
+      <div class="failure-card-header">
+        <div class="failure-number">7</div>
+        <div class="failure-name">Solo Part-Time Builder Overwhelmed by Support</div>
+      </div>
+      <div class="failure-body">
+        <div>
+          <div class="field-label">Story</div>
+          <div class="story-text">Within two months, the bookkeeper was submitting tickets for invoices in unusual formats — scanned images, multi-page PDFs with totals on page three, suppliers who embedded amounts in summary tables. QuickBooks sync errors followed: OAuth tokens expired silently after 90 days, causing auto-booking to fail without alerting anyone, and two batches of approved invoices never reached QuickBooks, requiring manual re-entry. The builder, working a full-time day job, could only respond in the evenings — a 36-hour gap that fell inside the firm's payment-run window. The breaking point came when a supplier threatened a late-payment dispute because an invoice was stuck in the approval portal for eleven days due to a silent JavaScript error on the firm's older browser. The builder didn't identify and fix the bug until the following weekend. The client emailed that same day to say they were returning to their manual process.</div>
+        </div>
+        <div>
+          <div class="field-label">Broken Assumption</div>
+          <div class="assumption-box">We assumed that a human approval step would absorb all errors before they caused business harm, when in practice integration-layer failures — silent sync errors, expired tokens, browser compatibility bugs — created urgent downstream accounting problems that required skilled intervention the builder could not provide on a business-hours timescale.</div>
+        </div>
+        <div>
+          <div class="field-label">Early Warning Signs</div>
+          <div class="warnings">
+            <div class="warning-item"><div class="warning-dot"></div><div>By week three, the bookkeeper had begun making corrections directly inside QuickBooks rather than re-submitting through the portal — routing around the tool because she had lost confidence in its output.</div></div>
+            <div class="warning-item"><div class="warning-dot"></div><div>By week five, average time between ticket submission and acknowledgement had reached 28 hours, with two tickets open more than four days, both relating to the OAuth sync failure — recurring, unresolved data loss during the period when trust was still being established.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Synthesis -->
+  <div class="section-title">Synthesis</div>
+  <div class="synthesis">
+
+    <div class="synth-card most-likely">
+      <div class="synth-tag">Most Likely Failure</div>
+      <div class="synth-title">GDPR / Data Protection Concerns Block Sign-Off</div>
+      <div class="synth-body">This is the most probable failure mode because it is structural, non-negotiable, and encountered before a single line of production code matters. UK accounting firms are regulated by ICAEW and ACCA. They hold third-party client financial data. Their professional indemnity insurance has specific terms about data handling. The moment a compliance officer reviews the data flow — invoice text leaving the firm's systems, transiting to a US-based AI API — the question of the DPA, the DPIA, the lawful basis, and the client privacy notice update all arise simultaneously. The builder had none of these. This must be addressed before the meeting, not after.</div>
+    </div>
+
+    <div class="synth-card most-danger">
+      <div class="synth-tag">Most Dangerous Failure</div>
+      <div class="synth-title">Extraction Accuracy Causing a Real Financial Error</div>
+      <div class="synth-body">If the system goes live and a VAT misread or wrong due date causes a payment error, a missed HMRC filing, or a supplier dispute, the consequences extend far beyond a cancelled subscription. The firm faces a potential professional indemnity claim from their client. The builder faces liability as a software vendor whose product caused quantifiable financial harm. Unlike a cancellation, this failure mode cannot be walked back — the error already happened. The HMRC late VAT return notice scenario described in failure mode 4 is entirely realistic and could take months to resolve. Any path to go-live must include hard confidence thresholds that prevent low-confidence extractions from entering the approval queue without mandatory secondary review.</div>
+    </div>
+
+    <div class="synth-card hidden">
+      <div class="synth-tag">Hidden Assumption</div>
+      <div class="synth-title">"Human approval" is a quality gate, not a liability transfer</div>
+      <div class="synth-body">The plan includes a human approval step as if it were a safety net. It isn't. It is a liability transfer mechanism that only works if the human actually reviews each item carefully — which trained accounts staff will do, making the tool slower, or won't do under time pressure, making errors go through anyway. The builder never asked: what does it look like to approve 50 invoices in an afternoon? What is the approver's incentive structure? Who bears the risk if a wrong item is approved? The assumption that the approval step "solves" the accuracy problem is the single most invisible flaw in the plan. The approval step must be redesigned: confidence thresholds, mandatory flags, clear escalation paths, and a workflow that gives approvers exactly the information they need to make a 10-second decision — no more, no less.</div>
+    </div>
+
+    <div class="synth-card revised">
+      <div class="synth-tag">Revised Plan</div>
+      <div class="synth-title">What the plan should look like instead</div>
+      <ul class="revised-steps">
+        <li><div class="step-num">1</div><div><strong>Before the meeting:</strong> Register with the ICO as a data controller/processor. Download and complete Anthropic's Data Processing Addendum (available at anthropic.com). Prepare a one-page data flow diagram showing exactly where data goes, that Anthropic does not retain API data for training, and that all transit is TLS-encrypted. Bring this to the meeting. If asked "what other firms use this?", answer honestly: "none yet — that's why I'm offering a paid pilot at a reduced rate, with a 30-day exit clause, so we both have low risk."</div></li>
+        <li><div class="step-num">2</div><div><strong>Narrow the scope to what is actually solvable:</strong> Commit only to digital PDF invoices from named suppliers (agreed list upfront). Explicitly exclude: scanned/photographed invoices, credit notes, multi-currency, reverse-charge VAT. Scope creep killed this plan — define what you will not do in writing before you start.</div></li>
+        <li><div class="step-num">3</div><div><strong>Rebuild the approval UX around a real approver's workflow:</strong> Show the original invoice PDF side-by-side with the extracted fields. Flag any item with a confidence score below 0.85 with a mandatory "Please verify" warning before the Approve button appears. Cap daily approval queues at a manageable volume and surface how long a session will actually take. Measure approval time in the first two weeks — if it exceeds 20 seconds per invoice on average, the UX is broken and needs to be fixed immediately.</div></li>
+        <li><div class="step-num">4</div><div><strong>Price correctly:</strong> Model the real costs first: QuickBooks developer fee (£40–£80/month), Claude API at expected invoice volume (£30–£60/month), 4–6h/month support at a real implicit rate. Floor price is ~£200/month in costs. Minimum viable margin means pricing at £599–£799/month. Alternatively: £299/month + a £500 one-time setup fee that covers integration and onboarding. Never give away a pilot for free — charge £300 for 30 days with credit toward the first month. Paid pilots produce engaged clients; free pilots produce disengaged ones.</div></li>
+        <li><div class="step-num">5</div><div><strong>Define an SLA you can actually keep:</strong> As a solo part-time builder, you cannot guarantee same-day response. Be explicit: "Support requests acknowledged within 24 business hours, resolved within 3 business days for non-critical issues." Set this expectation in writing before go-live, not after the first urgent ticket arrives during your working day.</div></li>
+        <li><div class="step-num">6</div><div><strong>Test the QuickBooks integration with the firm's actual account codes before signing:</strong> Ask for a read-only export of their chart of accounts and vendor list during the proposal stage. Build and test the posting flow against their real data structure in the QuickBooks sandbox. If you cannot complete a test bill posting without asking the accountant for help, the integration is not ready and the deal should not close yet.</div></li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- Checklist -->
+  <div class="checklist-section">
+    <div class="section-title">Pre-Launch Checklist — Do Not Proceed Until All Are Yes</div>
+    <div class="checklist">
+      <div class="checklist-intro">Each item below is a binary gate. A "no" answer means the plan should not proceed yet — not "proceed with caution."</div>
+
+      <div class="check-item">
+        <input type="checkbox" id="c1" />
+        <label class="check-label" for="c1"><strong>Do you have ICO registration and a signed Data Processing Addendum with Anthropic</strong> that satisfies UK GDPR Article 28 and that you can hand to the firm's compliance contact on request?</label>
+      </div>
+
+      <div class="check-item">
+        <input type="checkbox" id="c2" />
+        <label class="check-label" for="c2"><strong>Have you completed and documented a DPIA</strong> (Data Protection Impact Assessment) covering the invoice processing data flow, and can you demonstrate that no personal data from processed invoices is retained by Anthropic beyond the API call?</label>
+      </div>
+
+      <div class="check-item">
+        <input type="checkbox" id="c3" />
+        <label class="check-label" for="c3"><strong>Have you modelled your actual monthly costs</strong> (Claude API at expected invoice volume + QuickBooks developer/partner fee + support time at a real implicit hourly rate) and confirmed your price leaves a margin of at least £200/month?</label>
+      </div>
+
+      <div class="check-item">
+        <input type="checkbox" id="c4" />
+        <label class="check-label" for="c4"><strong>Have you tested extraction on at least 30 real invoices</strong> representing the firm's actual mix (not just clean PDFs), measured accuracy per field, and can you show the firm a concrete accuracy figure — with an honest statement of which invoice types are excluded from scope?</label>
+      </div>
+
+      <div class="check-item">
+        <input type="checkbox" id="c5" />
+        <label class="check-label" for="c5"><strong>Have you successfully posted a test bill to a QuickBooks sandbox</strong> using the firm's actual chart-of-accounts codes and at least one vendor record from their real vendor list — without needing to ask the accountant for help mid-integration?</label>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="report-footer">
+    Premortem Analysis &nbsp;&#183;&nbsp; Generated 10 May 2026 &nbsp;&#183;&nbsp; 7 failure modes &nbsp;&#183;&nbsp; This document is a fictional future post-mortem written to surface risks before they occur
+  </div>
+
+</div>
+</body>
+</html>

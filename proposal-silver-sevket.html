@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Proposal — Silver Sevket &amp; Co | MailLens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Barlow:wght@300;400;500;600&family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+@page { size: A4 portrait; margin: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --navy:        #0F172A;
+  --navy-mid:    #1E293B;
+  --navy-light:  #334155;
+  --teal:        #0D9488;
+  --teal-light:  #14B8A8;
+  --teal-pale:   #CCFBF1;
+  --white:       #FFFFFF;
+  --off-white:   #F8FAFC;
+  --gray-100:    #F1F5F9;
+  --gray-200:    #E2E8F0;
+  --gray-400:    #94A3B8;
+  --gray-600:    #475569;
+  --green:       #16A34A;
+  --red:         #DC2626;
+  --page-w:      210mm;
+  --page-h:      297mm;
+}
+
+html, body {
+  background: #94A3B8;
+  font-family: 'Barlow', 'Helvetica Neue', sans-serif;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* ── Page shell ── */
+.page {
+  width: var(--page-w);
+  height: var(--page-h);
+  overflow: hidden;
+  position: relative;
+  background: var(--white);
+  margin: 6mm auto;
+  display: flex;
+  flex-direction: column;
+  page-break-after: always;
+}
+@media print {
+  html, body { background: none; }
+  .page { margin: 0; }
+}
+
+/* ── Running header ── */
+.run-header {
+  height: 11mm;
+  background: var(--navy);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 13mm;
+  flex-shrink: 0;
+}
+.rh-left {
+  display: flex;
+  align-items: center;
+  gap: 2.5mm;
+}
+.rh-mark {
+  width: 5mm; height: 5mm;
+  background: var(--teal);
+  border-radius: 1mm;
+  position: relative;
+  flex-shrink: 0;
+}
+.rh-mark::after {
+  content: '';
+  position: absolute;
+  inset: 1.3mm;
+  background: var(--navy);
+  border-radius: 0.3mm;
+}
+.rh-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 11pt;
+  font-weight: 700;
+  color: var(--white);
+  letter-spacing: 0.03em;
+}
+.rh-right {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 7pt;
+  font-weight: 500;
+  color: rgba(255,255,255,0.35);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* ── Running footer ── */
+.run-footer {
+  height: 9mm;
+  border-top: 0.3mm solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 13mm;
+  flex-shrink: 0;
+}
+.rf-l { font-size: 7pt; color: var(--gray-400); }
+.rf-l b { color: var(--gray-600); font-weight: 600; }
+.rf-sep { color: var(--gray-200); margin: 0 1.5mm; }
+.rf-r { font-size: 7pt; color: var(--gray-400); }
+
+/* ── Content area ── */
+.content {
+  flex: 1;
+  padding: 9mm 13mm 7mm;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 6mm;
+}
+
+/* ── Section ── */
+.sec { display: flex; flex-direction: column; gap: 2.5mm; }
+.sec-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 2.5mm;
+}
+.sec-num {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 7pt;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--teal);
+  white-space: nowrap;
+}
+.sec-rule {
+  flex: 1;
+  height: 0.3mm;
+  background: var(--teal);
+  opacity: 0.25;
+}
+.sec-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 17pt;
+  font-weight: 700;
+  color: var(--navy);
+  line-height: 1.1;
+  letter-spacing: 0.005em;
+}
+.sec-body {
+  font-size: 9pt;
+  color: var(--gray-600);
+  line-height: 1.7;
+}
+.sec-body p + p { margin-top: 3.5mm; }
+.sec-body strong { color: var(--navy); font-weight: 600; }
+
+/* ── Bullet list ── */
+.blist {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1.8mm;
+}
+.blist li {
+  display: flex;
+  gap: 2.5mm;
+  font-size: 9pt;
+  color: var(--gray-600);
+  line-height: 1.55;
+  align-items: flex-start;
+}
+.blist li::before {
+  content: '';
+  width: 1.4mm; height: 1.4mm;
+  background: var(--teal);
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 2.8mm;
+}
+.blist li strong { color: var(--navy); font-weight: 600; }
+.blist.excluded li::before { background: var(--red); }
+.blist.excluded li { color: var(--gray-600); }
+
+/* ── Tech card ── */
+.tech-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3.5mm;
+}
+.tech-card {
+  background: var(--gray-100);
+  border: 0.3mm solid var(--gray-200);
+  border-left: 2mm solid var(--teal);
+  border-radius: 0 2mm 2mm 0;
+  padding: 3.5mm 4.5mm;
+}
+.tc-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 9pt;
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 1.5mm;
+}
+.tc-body {
+  font-size: 8.5pt;
+  color: var(--gray-600);
+  line-height: 1.55;
+}
+.tc-body strong { color: var(--navy); font-weight: 600; }
+
+.scope-note {
+  background: var(--off-white);
+  border: 0.3mm solid var(--gray-200);
+  border-radius: 2mm;
+  padding: 3.5mm 4.5mm;
+  font-size: 8.5pt;
+  color: var(--gray-600);
+  line-height: 1.6;
+}
+.scope-note b { color: var(--navy); font-weight: 600; }
+
+/* ── Timeline ── */
+.phase {
+  display: grid;
+  grid-template-columns: 8mm 1fr 24mm;
+  gap: 4mm;
+}
+.ph-connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.ph-circle {
+  width: 7mm; height: 7mm;
+  background: var(--teal);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 9pt;
+  font-weight: 700;
+  color: var(--white);
+  flex-shrink: 0;
+}
+.ph-line {
+  flex: 1;
+  width: 0.3mm;
+  background: var(--gray-200);
+  margin: 1mm 0;
+}
+.phase:last-child .ph-line { display: none; }
+.ph-content { padding: 0.5mm 0 4mm; }
+.ph-name {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--navy);
+  margin-bottom: 1.5mm;
+}
+.ph-desc {
+  font-size: 8.5pt;
+  color: var(--gray-600);
+  line-height: 1.6;
+}
+.ph-dur { padding-top: 0.5mm; text-align: right; }
+.dur-pill {
+  display: inline-block;
+  background: var(--gray-100);
+  border: 0.3mm solid var(--gray-200);
+  border-radius: 1mm;
+  padding: 1mm 3mm;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 8pt;
+  font-weight: 600;
+  color: var(--navy-light);
+  white-space: nowrap;
+}
+
+.timeline-total {
+  background: var(--navy);
+  border-radius: 2mm;
+  padding: 4mm 6mm;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 2mm;
+}
+.tt-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 8pt;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.45);
+}
+.tt-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 15pt;
+  font-weight: 700;
+  color: var(--white);
+}
+.tt-val span { color: var(--teal-light); }
+
+/* ── Pricing ── */
+.setup-banner {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
+  border-radius: 2mm;
+  padding: 5mm 6mm;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6mm;
+}
+.sb-left {}
+.sb-eyebrow {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 7pt;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--teal-light);
+  margin-bottom: 1.5mm;
+}
+.sb-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 15pt;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 1mm;
+}
+.sb-desc {
+  font-size: 8pt;
+  color: rgba(255,255,255,0.5);
+  line-height: 1.55;
+  max-width: 110mm;
+}
+.sb-price { text-align: right; flex-shrink: 0; }
+.sb-amount {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 30pt;
+  font-weight: 700;
+  color: var(--white);
+  line-height: 1;
+}
+.sb-note { font-size: 7pt; color: rgba(255,255,255,0.35); margin-top: 1mm; }
+
+.tier-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 4mm;
+}
+.tier {
+  border: 0.4mm solid var(--gray-200);
+  border-radius: 2mm;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+.tier.rec {
+  border: 0.8mm solid var(--teal);
+}
+.rec-badge {
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  background: var(--teal);
+  color: var(--white);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 6.5pt;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.8mm 3.5mm;
+  border-radius: 0 0 1.5mm 1.5mm;
+  white-space: nowrap;
+}
+.tier-head {
+  background: var(--gray-100);
+  padding: 6mm 5mm 4mm;
+  border-bottom: 0.3mm solid var(--gray-200);
+}
+.tier.rec .tier-head { background: var(--teal); }
+.t-name {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 9pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--navy-light);
+  margin-bottom: 2.5mm;
+}
+.tier.rec .t-name { color: rgba(255,255,255,0.8); }
+.t-price {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28pt;
+  font-weight: 700;
+  color: var(--navy);
+  line-height: 1;
+}
+.tier.rec .t-price { color: var(--white); }
+.t-per {
+  font-family: 'Barlow', sans-serif;
+  font-size: 9pt;
+  font-weight: 400;
+  color: var(--gray-400);
+}
+.tier.rec .t-per { color: rgba(255,255,255,0.6); }
+.tier-body {
+  padding: 4mm 5mm;
+  flex: 1;
+  background: var(--white);
+  display: flex;
+  flex-direction: column;
+  gap: 2mm;
+}
+.t-feat {
+  display: flex;
+  gap: 2mm;
+  align-items: flex-start;
+  font-size: 8pt;
+  color: var(--gray-600);
+  line-height: 1.4;
+}
+.tf-dot {
+  width: 1.4mm; height: 1.4mm;
+  border-radius: 50%;
+  background: var(--gray-400);
+  flex-shrink: 0;
+  margin-top: 2.2mm;
+}
+.tier.rec .tf-dot { background: var(--teal); }
+
+.pay-note {
+  font-size: 7.5pt;
+  color: var(--gray-400);
+  text-align: center;
+  font-style: italic;
+  margin-top: 1mm;
+}
+
+/* ── Included / Excluded ── */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; }
+.col-head {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 8pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding-bottom: 2mm;
+  margin-bottom: 3mm;
+  border-bottom: 0.4mm solid;
+}
+.col-head.incl { color: var(--green); border-color: rgba(22,163,74,0.3); }
+.col-head.excl { color: var(--red);   border-color: rgba(220,38,38,0.3); }
+
+/* ── Compliance ── */
+.check-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3mm 10mm;
+}
+.ci {
+  display: flex;
+  gap: 3mm;
+  align-items: flex-start;
+}
+.ci-tick {
+  width: 5mm; height: 5mm;
+  background: var(--green);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 0.3mm;
+}
+.ci-tick svg { display: block; }
+.ci-text { font-size: 8.5pt; color: var(--gray-600); line-height: 1.5; }
+.ci-text b { color: var(--navy); font-weight: 600; }
+
+/* ── Next steps ── */
+.steps { display: flex; flex-direction: column; gap: 3mm; }
+.step { display: flex; gap: 4mm; align-items: flex-start; }
+.step-num {
+  width: 7mm; height: 7mm;
+  border-radius: 50%;
+  border: 0.5mm solid var(--teal);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 9.5pt;
+  font-weight: 700;
+  color: var(--teal);
+  flex-shrink: 0;
+}
+.step-body { padding-top: 0.5mm; }
+.step-title { font-size: 9.5pt; font-weight: 600; color: var(--navy); margin-bottom: 1mm; }
+.step-desc { font-size: 8.5pt; color: var(--gray-600); line-height: 1.5; }
+
+/* ── Signature ── */
+.sig-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14mm;
+  margin-top: 3mm;
+}
+.sig-block { border-top: 0.4mm solid var(--gray-200); padding-top: 2mm; }
+.sig-label { font-size: 7.5pt; color: var(--gray-400); margin-bottom: 5mm; }
+.sig-name { font-size: 8.5pt; font-weight: 600; color: var(--gray-600); }
+
+/* ── Closing bar ── */
+.closing-bar {
+  background: var(--navy);
+  border-radius: 2mm;
+  padding: 4.5mm 6mm;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6mm;
+  margin-top: 2mm;
+}
+.cb-text { font-size: 8.5pt; color: rgba(255,255,255,0.6); line-height: 1.5; }
+.cb-text b { color: var(--white); font-weight: 500; }
+.cb-link { font-size: 8.5pt; color: var(--teal-light); white-space: nowrap; }
+
+/* ── Utility ── */
+.sub-head {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 13pt;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 2.5mm;
+}
+
+/* ═════════════════════════════════════════
+   PAGE 1 — COVER
+═════════════════════════════════════════ */
+.cover {
+  background: var(--navy);
+  flex-direction: column;
+  page-break-after: always;
+}
+.cover-blob-a {
+  position: absolute; top: -25mm; right: -15mm;
+  width: 100mm; height: 100mm; border-radius: 50%;
+  background: radial-gradient(circle, rgba(13,148,136,0.22) 0%, transparent 70%);
+}
+.cover-blob-b {
+  position: absolute; bottom: 20mm; left: -35mm;
+  width: 120mm; height: 120mm; border-radius: 50%;
+  background: radial-gradient(circle, rgba(13,148,136,0.12) 0%, transparent 70%);
+}
+.cover-blob-c {
+  position: absolute; bottom: -5mm; right: 30mm;
+  width: 65mm; height: 65mm; border-radius: 50%;
+  background: radial-gradient(circle, rgba(20,184,168,0.1) 0%, transparent 70%);
+}
+.cover-stripe {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 2.5mm;
+  background: linear-gradient(180deg, var(--teal) 0%, rgba(13,148,136,0.25) 100%);
+}
+
+.cv-top {
+  padding: 11mm 13mm 0 17mm;
+  display: flex; align-items: center; justify-content: space-between;
+  position: relative; z-index: 1;
+}
+.cv-brand { display: flex; align-items: center; gap: 3.5mm; }
+.cv-mark {
+  width: 10mm; height: 10mm;
+  background: var(--teal);
+  border-radius: 2mm;
+  position: relative; flex-shrink: 0;
+}
+.cv-mark::after {
+  content: '';
+  position: absolute; inset: 2.5mm;
+  background: var(--navy);
+  border-radius: 0.6mm;
+}
+.cv-brand-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22pt; font-weight: 700;
+  color: var(--white); letter-spacing: 0.03em;
+}
+.cv-brand-name em { color: var(--teal-light); font-style: normal; }
+.cv-conf {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 7pt; font-weight: 700;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: rgba(255,255,255,0.28);
+  border: 0.3mm solid rgba(255,255,255,0.12);
+  padding: 1.2mm 3mm; border-radius: 0.8mm;
+}
+
+.cv-body {
+  flex: 1;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 0 13mm 0 17mm;
+  position: relative; z-index: 1;
+}
+.cv-kicker {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 8pt; font-weight: 700;
+  letter-spacing: 0.24em; text-transform: uppercase;
+  color: var(--teal-light);
+  margin-bottom: 3mm;
+}
+.cv-for {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 12pt; font-weight: 400;
+  color: rgba(255,255,255,0.35);
+  letter-spacing: 0.22em; text-transform: uppercase;
+  margin-bottom: 2.5mm;
+}
+.cv-client {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 42pt; font-weight: 700;
+  color: var(--white);
+  line-height: 0.92; letter-spacing: -0.01em;
+  margin-bottom: 6mm;
+}
+.cv-subtitle {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 16pt; font-weight: 400; font-style: italic;
+  color: rgba(255,255,255,0.55);
+  line-height: 1.35; max-width: 145mm;
+  margin-bottom: 12mm;
+}
+.cv-rule {
+  width: 18mm; height: 0.6mm;
+  background: var(--teal); margin-bottom: 9mm;
+}
+.cv-meta {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  gap: 10mm;
+  width: fit-content;
+}
+.cv-mi {}
+.cvm-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 6.5pt; font-weight: 600;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+  margin-bottom: 1.5mm;
+}
+.cvm-val {
+  font-size: 9pt; font-weight: 500;
+  color: rgba(255,255,255,0.82);
+  line-height: 1.35;
+}
+
+.cv-foot {
+  padding: 7mm 13mm 10mm 17mm;
+  border-top: 0.3mm solid rgba(255,255,255,0.07);
+  display: flex; align-items: center; justify-content: space-between;
+  position: relative; z-index: 1;
+}
+.cvf-l { font-size: 8pt; color: rgba(255,255,255,0.3); }
+.cvf-l b { color: rgba(255,255,255,0.5); font-weight: 500; }
+.cvf-r { display: flex; align-items: center; gap: 2mm; }
+.cvf-dot { width: 4mm; height: 4mm; background: var(--teal); border-radius: 50%; }
+.cvf-url { font-size: 8pt; color: var(--teal-light); }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════
+     PAGE 1 — COVER
+════════════════════════════════════ -->
+<div class="page cover">
+  <div class="cover-blob-a"></div>
+  <div class="cover-blob-b"></div>
+  <div class="cover-blob-c"></div>
+  <div class="cover-stripe"></div>
+
+  <div class="cv-top">
+    <div class="cv-brand">
+      <div class="cv-mark"></div>
+      <span class="cv-brand-name">Mail<em>Lens</em></span>
+    </div>
+    <div class="cv-conf">Confidential</div>
+  </div>
+
+  <div class="cv-body">
+    <div class="cv-kicker">Consulting Proposal</div>
+    <div class="cv-for">Prepared for</div>
+    <div class="cv-client">Silver Sevket<br>&amp; Co</div>
+    <div class="cv-subtitle">AI-Powered Invoice Processing System<br>integrated with QuickBooks Online</div>
+    <div class="cv-rule"></div>
+    <div class="cv-meta">
+      <div class="cv-mi">
+        <div class="cvm-label">Prepared by</div>
+        <div class="cvm-val">Kaan Gunduz<br>AI Consultant</div>
+      </div>
+      <div class="cv-mi">
+        <div class="cvm-label">Date</div>
+        <div class="cvm-val">10 May 2026</div>
+      </div>
+      <div class="cv-mi">
+        <div class="cvm-label">Version</div>
+        <div class="cvm-val">1.0 — For Review</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cv-foot">
+    <div class="cvf-l"><b>MailLens</b> &nbsp;·&nbsp; Kaan Gunduz AI Consultant &nbsp;·&nbsp; maillens.contact@gmail.com</div>
+    <div class="cvf-r">
+      <div class="cvf-dot"></div>
+      <span class="cvf-url">maillens.uk</span>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════
+     PAGE 2 — EXEC SUMMARY + PROBLEM + SOLUTION
+════════════════════════════════════ -->
+<div class="page">
+  <div class="run-header">
+    <div class="rh-left">
+      <div class="rh-mark"></div>
+      <span class="rh-name">MailLens</span>
+    </div>
+    <span class="rh-right">Silver Sevket &amp; Co — AI Invoice Processing Proposal</span>
+  </div>
+
+  <div class="content">
+
+    <div class="sec">
+      <div class="sec-eyebrow">
+        <span class="sec-num">01 &nbsp;—&nbsp; Executive Summary</span>
+        <div class="sec-rule"></div>
+      </div>
+      <div class="sec-title">The right choice for a regulated firm</div>
+      <div class="sec-body">
+        <p>Silver Sevket &amp; Co is losing skilled bookkeeper hours to a data-entry task that can be reliably automated. This proposal delivers an <strong>AI-powered invoice processing system</strong> — built specifically for your QuickBooks environment, your VAT obligations, and your ICAEW compliance requirements — that extracts invoice data, presents it for human approval, and books confirmed transactions directly to QuickBooks. The target is your <strong>first live invoice processed within 8 weeks</strong> of engagement start, with full GDPR documentation in place from day one.</p>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-eyebrow">
+        <span class="sec-num">02 &nbsp;—&nbsp; Problem Statement</span>
+        <div class="sec-rule"></div>
+      </div>
+      <div class="sec-title">Manual transcription is costing you more than time</div>
+      <div class="sec-body">
+        <p>Your staff currently read each incoming invoice manually, transcribe supplier name, net amount, VAT, and due date, then re-enter that data into QuickBooks by hand. Across two offices, this is <strong>30–60 minutes of skilled bookkeeper time per day</strong> — time spent on data transcription, not accounting judgement.</p>
+        <p>The risk compounds invisibly. A misread VAT figure, a transposed due date, or a confused supplier name creates a downstream error that takes longer to fix than it took to make. For an ICAEW-regulated firm, an incorrect VAT posting that reaches an HMRC submission is not an inconvenience — it is a liability. Your current process also has no audit trail: there is no way to know how often errors occur, how long they persist, or who last touched a record.</p>
+        <p>Left unsolved, this problem scales with your client volume. Every new invoice is another manual task, another risk of error, and another opportunity for a delayed payment to trigger a supplier dispute.</p>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-eyebrow">
+        <span class="sec-num">03 &nbsp;—&nbsp; Proposed Solution</span>
+        <div class="sec-rule"></div>
+      </div>
+      <div class="sec-title">Structured automation with a human approval gate</div>
+      <div class="sec-body">
+        <p>An AI invoice processing pipeline that eliminates manual transcription while keeping your staff firmly in control of what gets posted. Incoming PDF invoices are submitted through a secure web portal. <strong>Claude AI</strong> reads each invoice and extracts the four key fields: supplier name, amount, VAT, and due date. A bookkeeper then reviews each extraction alongside the original invoice in a <strong>side-by-side approval interface</strong> — with confidence indicators flagging any item the model is uncertain about. Only approved records are posted to QuickBooks. Nothing is ever booked automatically.</p>
+        <p>This is not a black box replacing your staff. It is a structured data pipeline that removes the transcription step and adds an <strong>auditable approval layer</strong> your current process lacks entirely. Your bookkeepers make faster, better-informed decisions — with full visibility into what the AI extracted and why.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="run-footer">
+    <div class="rf-l"><b>MailLens</b> <span class="rf-sep">·</span> maillens.uk <span class="rf-sep">·</span> maillens.contact@gmail.com</div>
+    <div class="rf-r">Page 2</div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════
+     PAGE 3 — TECHNICAL APPROACH
+════════════════════════════════════ -->
+<div class="page">
+  <div class="run-header">
+    <div class="rh-left">
+      <div class="rh-mark"></div>
+      <span class="rh-name">MailLens</span>
+    </div>
+    <span class="rh-right">Silver Sevket &amp; Co — AI Invoice Processing Proposal</span>
+  </div>
+
+  <div class="content">
+
+    <div class="sec">
+      <div class="sec-eyebrow">
+        <span class="sec-num">04 &nbsp;—&nbsp; Technical Approach</span>
+        <div class="sec-rule"></div>
+      </div>
+      <div class="sec-title">Built for your environment, not a generic template</div>
+    </div>
+
+    <div class="tech-grid">
+      <div class="tech-card">
+        <div class="tc-title">AI Extraction — Anthropic Claude API</div>
+        <div class="tc-body">Invoice text is submitted to Claude via API. The model returns structured JSON: supplier, net amount, VAT amount, VAT code (T0/T1/T9/RC), and due date. <strong>Confidence scoring</strong> flags any extraction below threshold for mandatory secondary review — low-confidence items cannot be rubber-stamped.</div>
+      </div>
+      <div class="tech-card">
+        <div class="tc-title">Approval Interface</div>
+        <div class="tc-body">A web portal presents each pending invoice with extracted fields pre-filled and the original PDF visible alongside. Approvers see exactly what will be posted before confirming. Every approval is <strong>logged with timestamp and reviewer ID</strong>. Rejected items are queued for manual handling with notes.</div>
+      </div>
+      <div class="tech-card">
+        <div class="tc-title">QuickBooks Integration — OAuth 2.0</div>
+        <div class="tc-body">After approval, confirmed bill records are posted to QuickBooks Online via the Intuit API using <strong>OAuth 2.0</strong>. The integration maps to your existing chart of accounts and vendor list — account codes and vendor IDs are confirmed during Discovery before any live data is touched.</div>
+      </div>
+      <div class="tech-card">
+        <div class="tc-title">Infrastructure &amp; Security</div>
+        <div class="tc-body">Hosted on <strong>EU-based cloud infrastructure</strong> (Supabase / Postgres, Ireland). Row Level Security enforced at database level. Session cookies: Secure, HttpOnly, SameSite=Strict. All data in transit over <strong>TLS 1.2+</strong>. Content Security Policy enforced; no third-party tracking.</div>
+      </div>
+      <div class="tech-card">
+        <div class="tc-title">Authentication &amp; Access</div>
+        <div class="tc-body">Magic-link email authentication via Supabase Auth — no passwords to manage or reset. Access is <strong>invitation-only</strong>, scoped to approved email addresses. Each office can be granted separate user accounts with the same approval rights or differentiated by role.</div>
+      </div>
+      <div class="tech-card">
+        <div class="tc-title">UK GDPR Compliance</div>
+        <div class="tc-body"><strong>ICO registration applied</strong> (ref: C1928867). Anthropic DPA active — API data not retained for model training. Data flow diagram prepared. Analysis records auto-deleted after 90 days. GDPR rights implemented in-product: Access · Deletion · Export · Correction.</div>
+      </div>
+    </div>
+
+    <div class="scope-note">
+      <b>Scope boundaries agreed at Discovery (before any build begins).</b> Supported invoice types at launch: digital PDF invoices from named suppliers on an agreed list. Explicitly excluded from initial scope: scanned or photographed invoices, credit notes, multi-currency invoices, reverse-charge VAT, invoices with embedded line-item tables. These can be added in subsequent phases.
+    </div>
+
+  </div>
+
+  <div class="run-footer">
+    <div class="rf-l"><b>MailLens</b> <span class="rf-sep">·</span> maillens.uk <span class="rf-sep">·</span> maillens.contact@gmail.com</div>
+    <div class="rf-r">Page 3</div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════
+     PAGE 4 — TIMELINE
+════════════════════════════════════ -->
+<div class="page">
+  <div class="run-header">
+    <div class="rh-left">
+      <div class="rh-mark"></div>
+      <span class="rh-name">MailLens</span>
+    </div>
+    <span class="rh-right">Silver Sevket &amp; Co — AI Invoice Processing Proposal</span>
+  </div>
+
+  <div class="content">
+
+    <div class="sec">
+      <div class="sec-eyebrow">
+        <span class="sec-num">05 &nbsp;—&nbsp; Project Timeline</span>
+        <div class="sec-rule"></div>
+      </div>
+      <div class="sec-title">8 weeks to your first live invoice</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:0;">
+
+      <div class="phase">
+        <div class="ph-connector">
+          <div class="ph-circle">1</div>
+          <div class="ph-line"></div>
+        </div>
+        <div class="ph-content">
+          <div class="ph-name">Discovery</div>
+          <div class="ph-desc">Review your invoice mix, QuickBooks chart of accounts, VAT codes in use, and the existing approval workflow across both offices. Agree the supported invoice types and document all exclusions in writing before any build begins. This phase de-risks the entire engagement.</div>
+        </div>
+        <div class="ph-dur"><div class="dur-pill">Week 1</div></div>
+      </div>
+
+      <div class="phase">
+        <div class="ph-connector">
+          <div class="ph-circle">2</div>
+          <div class="ph-line"></div>
+        </div>
+        <div class="ph-content">
+          <div class="ph-name">Infrastructure &amp; QuickBooks Integration</div>
+          <div class="ph-desc">QuickBooks OAuth setup and sandbox testing against your actual account codes and vendor list. Supabase database, authentication, and Row Level Security configuration. The QuickBooks posting flow is confirmed end-to-end before a single line of AI code is written.</div>
+        </div>
+        <div class="ph-dur"><div class="dur-pill">Weeks 2–3</div></div>
+      </div>
+
+      <div class="phase">
+        <div class="ph-connector">
+          <div class="ph-circle">3</div>
+          <div class="ph-line"></div>
+        </div>
+        <div class="ph-content">
+          <div class="ph-name">AI Pipeline &amp; Approval Interface</div>
+          <div class="ph-desc">Claude extraction pipeline with confidence scoring and threshold rules. Side-by-side approval interface showing extracted fields alongside the original PDF. Audit log capturing reviewer ID and timestamp for every decision. Rejection queue and manual handling workflow.</div>
+        </div>
+        <div class="ph-dur"><div class="dur-pill">Weeks 3–5</div></div>
+      </div>
+
+      <div class="phase">
+        <div class="ph-connector">
+          <div class="ph-circle">4</div>
+          <div class="ph-line"></div>
+        </div>
+        <div class="ph-content">
+          <div class="ph-name">Testing &amp; QA</div>
+          <div class="ph-desc">Test against a batch of 30–50 real invoices from your actual supplier mix. Measure per-field accuracy across supplier name, amount, VAT code, and due date. Identify edge cases and agree handling rules. User walkthrough with your bookkeeping staff at both offices. Accuracy benchmarks documented before go-live.</div>
+        </div>
+        <div class="ph-dur"><div class="dur-pill">Weeks 6–7</div></div>
+      </div>
+
+      <div class="phase">
+        <div class="ph-connector">
+          <div class="ph-circle">5</div>
+          <div class="ph-line"></div>
+        </div>
+        <div class="ph-content">
+          <div class="ph-name">Go-Live &amp; Handoff</div>
+          <div class="ph-desc">Switch to production credentials. Monitor the first live processing run with direct support. Deliver user guide, data flow documentation, and GDPR compliance pack. Handoff to your team with 30-day post-launch monitoring included.</div>
+        </div>
+        <div class="ph-dur"><div class="dur-pill">Week 8</div></div>
+      </div>
+
+    </div>
+
+    <div class="timeline-total">
+      <span class="tt-label">Estimated Total Duration</span>
+      <span class="tt-val"><span>8 weeks</span> to first live invoice processed</span>
+    </div>
+
+  </div>
+
+  <div class="run-footer">
+    <div class="rf-l"><b>MailLens</b> <span class="rf-sep">·</span> maillens.uk <span class="rf-sep">·</span> maillens.contact@gmail.com</div>
+    <div class="rf-r">Page 4</div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════
+     PAGE 5 — PRICING
+════════════════════════════════════ -->
+<div class="page">
+  <div class="run-header">
+    <div class="rh-left">
+      <div class="rh-mark"></div>
+      <span class="rh-name">MailLens</span>
+    </div>
+    <span class="rh-right">Silver Sevket &amp; Co — AI Invoice Processing Proposal</span>
+  </div>
+
+  <div class="content">
+
+    <div class="sec">
+      <div class="sec-eyebrow">
+        <span class="sec-num">06 &nbsp;—&nbsp; Pricing</span>
+        <div class="sec-rule"></div>
+      </div>
+      <div class="sec-title">Transparent, no lock-in</div>
+    </div>
+
+    <div class="setup-banner">
+      <div class="sb-left">
+        <div class="sb-eyebrow">One-Time Setup Fee</div>
+        <div class="sb-title">Engagement Setup &amp; Integration</div>
+        <div class="sb-desc">Covers Discovery, infrastructure build, QuickBooks integration, testing against your invoice mix, and onboarding. Refundable in full if the QuickBooks integration cannot be completed against your specific account structure — you carry no risk on the foundational work.</div>
+      </div>
+      <div class="sb-price">
+        <div class="sb-amount">£500</div>
+        <div class="sb-note">one-time · due on signing</div>
+      </div>
+    </div>
+
+    <div class="tier-row">
+
+      <div class="tier">
+        <div class="tier-head">
+          <div class="t-name">Core</div>
+          <div class="t-price">£399<span class="t-per">/mo</span></div>
+        </div>
+        <div class="tier-body">
+          <div class="t-feat"><div class="tf-dot"></div><div>Digital PDF invoices, up to 150/month</div></div>
+          <div class="t-feat"><div class="tf-dot"></div><div>Extraction: supplier, amount, VAT, due date</div></div>
+          <div class="t-feat"><div class="tf-dot"></div><div>Human approval portal with audit log</div></div>
+          <div class="t-feat"><div class="tf-dot"></div><div>QuickBooks bill posting (approved only)</div></div>
+          <div class="t-feat"><div class="tf-dot"></div><div>Email support, 48-hour response</div></div>
+          <div class="t-feat"><div class="tf-dot"></div><div>GDPR compliance documentation</div></div>
+        </div>
+      </div>
+
+      <div class="tier rec">
+        <div class="rec-badge">✓ &nbsp; Recommended</div>
+        <div class="tier-head">
+          <div class="t-name">Professional</div>
+          <div class="t-price">£599<span class="t-per">/mo</span></div>
+        </div>
+        <div class="tier-body">
+          <div class="t-feat"><div class="tf-dot"></div><div>Everything in Core</div></div>
+          <div class="t-feat"><div class="tf-dot"></div><div>Up to 400 invoices/month, both offices</div></div>
+          <div class="t-feat"><div class="tf-dot"></div><div>Confidence scoring — mandatory flags on low-confidence extractions</div></div>
+          <div class="t-feat"><div class="tf-dot"></div><div>Priority email support, 24-hour response (business days)</div></div>
+          <div class="t-feat"><div class="tf-dot"></div><div>Monthly accuracy report with per-field error rates</div></div>
+          <div class="t-feat"><div class="tf-dot"></div><div>Staff onboarding session (remote, 1 hour)</div></div>
+          <div class="t-feat"><div class="tf-dot"></div><div>30-day exit clause — cancel with notice, no lock-in</div></div>
+        </div>
+      </div>
+
+      <div class="tier">
+        <div class="tier-head">
+          <div class="t-name">Extended</div>
+          <div class="t-price">£899<span class="t-per">/mo</span></div>
+        </div>
+        <div class="tier-body">
+          <div class="t-feat"><div class="tf-dot"></div><div>Everything in Professional</div></div>
+          <div class="t-feat"><div class="tf-dot"></div><div>Unlimited invoice volume</div></div>
+          <div class="t-feat"><div class="tf-dot"></div><div>Expanded invoice type coverage (scanned PDFs, credit notes — phased)</div></div>
+          <div class="t-feat"><div class="tf-dot"></div><div>Quarterly review call — accuracy, scope, and new requirements</div></div>
+          <div class="t-feat"><div class="tf-dot"></div><div>Same-day response for critical issues</div></div>
+        </div>
+      </div>
+
+    </div>
+
+    <p class="pay-note">Setup fee due on signing. Monthly retainer invoiced on the first of each month, payable within 14 days. All prices GBP, excluding VAT.</p>
+
+  </div>
+
+  <div class="run-footer">
+    <div class="rf-l"><b>MailLens</b> <span class="rf-sep">·</span> maillens.uk <span class="rf-sep">·</span> maillens.contact@gmail.com</div>
+    <div class="rf-r">Page 5</div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════
+     PAGE 6 — DELIVERABLES, COMPLIANCE, NEXT STEPS
+════════════════════════════════════ -->
+<div class="page">
+  <div class="run-header">
+    <div class="rh-left">
+      <div class="rh-mark"></div>
+      <span class="rh-name">MailLens</span>
+    </div>
+    <span class="rh-right">Silver Sevket &amp; Co — AI Invoice Processing Proposal</span>
+  </div>
+
+  <div class="content">
+
+    <div class="sec">
+      <div class="sec-eyebrow">
+        <span class="sec-num">07 &nbsp;—&nbsp; Deliverables</span>
+        <div class="sec-rule"></div>
+      </div>
+      <div class="sec-title">What you get — and what's out of scope</div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <div class="col-head incl">Included</div>
+        <ul class="blist">
+          <li>Full build, testing, and deployment of the invoice processing system</li>
+          <li>QuickBooks Online integration (bill creation, vendor resolution, VAT code mapping)</li>
+          <li>Human approval portal with confidence indicators and full audit log</li>
+          <li>UK GDPR compliance documentation: data flow diagram, DPA reference, ICO registration</li>
+          <li>User guide for your bookkeeping staff</li>
+          <li>30-day post-launch monitoring with direct support</li>
+          <li>Monthly accuracy reporting (Professional tier and above)</li>
+        </ul>
+      </div>
+      <div>
+        <div class="col-head excl">Not Included</div>
+        <ul class="blist excluded">
+          <li>QuickBooks Online subscription fees (your existing account)</li>
+          <li>Invoices outside the agreed scope at launch — scanned images, credit notes, multi-currency</li>
+          <li>Changes to your QuickBooks chart of accounts or vendor list structure</li>
+          <li>Accountancy or tax advice — this tool automates data entry, not professional judgement</li>
+          <li>Out-of-hours emergency support (Extended tier only)</li>
+          <li>Integration with any system other than QuickBooks Online</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-eyebrow">
+        <span class="sec-num">08 &nbsp;—&nbsp; Compliance</span>
+        <div class="sec-rule"></div>
+      </div>
+      <div class="sec-title">GDPR-ready from the first invoice</div>
+    </div>
+
+    <div class="check-grid">
+      <div class="ci">
+        <div class="ci-tick"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4l2 2 3-3.5" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="ci-text"><b>ICO Registered Data Controller</b> — ref. C1928867 (application submitted)</div>
+      </div>
+      <div class="ci">
+        <div class="ci-tick"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4l2 2 3-3.5" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="ci-text"><b>Anthropic DPA Active</b> — API data not used for model training</div>
+      </div>
+      <div class="ci">
+        <div class="ci-tick"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4l2 2 3-3.5" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="ci-text"><b>Data Flow Diagram Prepared</b> — available for your compliance review</div>
+      </div>
+      <div class="ci">
+        <div class="ci-tick"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4l2 2 3-3.5" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="ci-text"><b>90-Day Auto-Deletion</b> — analysis records purged automatically; manual deletion available</div>
+      </div>
+      <div class="ci">
+        <div class="ci-tick"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4l2 2 3-3.5" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="ci-text"><b>GDPR Rights In-Product</b> — Access, Deletion, Export, Correction (Art. 15–20)</div>
+      </div>
+      <div class="ci">
+        <div class="ci-tick"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4l2 2 3-3.5" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="ci-text"><b>TLS 1.2+ Encryption</b> at every stage · Row Level Security · No third-party tracking</div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-eyebrow">
+        <span class="sec-num">09 &nbsp;—&nbsp; Next Steps</span>
+        <div class="sec-rule"></div>
+      </div>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Review this proposal</div>
+          <div class="step-desc">If anything is unclear or you'd like to adjust the scope, tier, or timeline, let me know before signing. The Discovery phase is also the right moment to raise anything not covered here.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Schedule a 30-minute call</div>
+          <div class="step-desc">Walk through the QuickBooks integration approach, confirm your invoice mix is within scope, and answer any compliance questions your team has before committing.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Sign the engagement letter and submit the setup fee</div>
+          <div class="step-desc">Discovery begins the week of signing. The £500 setup fee is refundable in full if the QuickBooks integration cannot be completed against your specific account structure.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="closing-bar">
+      <div class="cb-text">Questions? Reply to this proposal or contact directly.<br><b>Kaan Gunduz</b> &nbsp;·&nbsp; AI Consultant &nbsp;·&nbsp; maillens.contact@gmail.com</div>
+      <div class="cb-link">maillens.uk</div>
+    </div>
+
+  </div>
+
+  <div class="run-footer">
+    <div class="rf-l"><b>MailLens</b> <span class="rf-sep">·</span> maillens.uk <span class="rf-sep">·</span> maillens.contact@gmail.com</div>
+    <div class="rf-r">Page 6</div>
+  </div>
+</div>
+
+</body>
+</html>
