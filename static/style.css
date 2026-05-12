@@ -895,6 +895,28 @@ textarea, input { font-family: inherit; }
 
 .excel-export-arrow { flex-shrink: 0; }
 
+/* ── Composed badge & sidebar extras ─────────────────────────────────────── */
+
+.u-badge.composed { background: var(--teal-bg); color: var(--teal); border-color: oklch(0.55 0.090 195 / 0.4); }
+.u-badge.composed .dot { background: var(--teal); }
+
+.sb-avatar-compose { font-size: 15px; line-height: 1; border: 1.5px solid oklch(0.55 0.090 195 / 0.4); }
+
+.sb-tone-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-4);
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  letter-spacing: 0.02em;
+}
+
+.sb-pill.lvl-composed .sb-pill-dot.composed { background: var(--teal); }
+.sb-pill.lvl-composed.active { background: var(--teal-bg); color: var(--teal); border-color: oklch(0.55 0.090 195 / 0.4); box-shadow: 0 0 0 3px var(--teal-glow); }
+
 /* ── Compose ─────────────────────────────────────────────────────────────── */
 
 .compose-panel {
@@ -963,6 +985,18 @@ textarea, input { font-family: inherit; }
   background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+}
+
+/* Tone bar inside compose result */
+.compose-result-tone-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 8px 14px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 10px;
 }
 
 /* Subject shimmer while waiting for first \n\n */

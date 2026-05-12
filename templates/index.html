@@ -91,6 +91,9 @@
         <button class="sb-pill filter-btn lvl-low" data-filter="low">
           <span class="sb-pill-dot"></span>Low <span class="sb-pill-count" id="cnt-low"></span>
         </button>
+        <button class="sb-pill filter-btn lvl-composed" data-filter="composed">
+          <span class="sb-pill-dot composed"></span>Composed <span class="sb-pill-count" id="cnt-composed"></span>
+        </button>
       </div>
 
       <div class="sb-list" id="historyList"></div>
@@ -454,6 +457,16 @@
 
           <!-- Compose result -->
           <div class="compose-result" id="composeResult" style="display:none">
+            <div class="compose-result-tone-bar">
+              <span class="tone-label">Tone</span>
+              <div class="tone-pills">
+                <button class="tone-pill compose-result-tone-pill active" data-tone="Professional"><span class="swatch"></span>Professional</button>
+                <button class="tone-pill compose-result-tone-pill" data-tone="Friendly"><span class="swatch"></span>Friendly</button>
+                <button class="tone-pill compose-result-tone-pill" data-tone="Formal"><span class="swatch"></span>Formal</button>
+                <button class="tone-pill compose-result-tone-pill" data-tone="Concise"><span class="swatch"></span>Concise</button>
+                <button class="tone-pill compose-result-tone-pill" data-tone="Empathetic"><span class="swatch"></span>Empathetic</button>
+              </div>
+            </div>
             <div class="compose-subject-card" id="composeSubjectCard">
               <div class="compose-subject-meta">
                 <span class="compose-subject-label">Subject</span>
@@ -900,15 +913,18 @@ function showComposeMode() {
 
 function setComposeTone(tone) {
   composeTone = tone;
-  document.querySelectorAll('.compose-tone-pill').forEach(p =>
+  document.querySelectorAll('.compose-tone-pill, .compose-result-tone-pill').forEach(p =>
     p.classList.toggle('active', p.dataset.tone === tone)
   );
-  const description = document.getElementById('composeDescription').value.trim();
-  const recipient   = document.getElementById('composeRecipient').value.trim();
-  const cacheKey    = tone + '\x00' + description + '\x00' + recipient;
-  if (composeToneCache[cacheKey] && document.getElementById('composeResult').style.display !== 'none') {
-    document.getElementById('composePanel').style.display = 'none';
-    showComposeResult(composeToneCache[cacheKey]);
+  if (document.getElementById('composeResult').style.display !== 'none') {
+    const description = document.getElementById('composeDescription').value.trim();
+    const recipient   = document.getElementById('composeRecipient').value.trim();
+    const cacheKey    = tone + '\x00' + description + '\x00' + recipient;
+    if (composeToneCache[cacheKey]) {
+      showComposeResult(composeToneCache[cacheKey]);
+    } else {
+      composeEmail();
+    }
   }
 }
 
@@ -918,6 +934,32 @@ function showComposeResult(data) {
   document.getElementById('composeResultActions').style.display = '';
   document.getElementById('composeResult').style.display = '';
   wsScroll(0);
+}
+
+async function saveComposeToHistory(description, tone, subject, body, recipient) {
+  recipient = recipient || '';
+  const preview    = description.slice(0, 70);
+  const composeData = { type: 'composed', subject, tone, description, recipient };
+  const localId    = 'local-' + Date.now();
+  const item = { id: localId, date: new Date().toISOString(), preview, urgency: '', email: body, data: composeData, isThread: false, threadCount: 0, thread: null };
+  historyData.unshift(item);
+  historyData = historyData.slice(0, 50);
+  activeHistoryId = localId;
+  renderHistory();
+
+  try {
+    const res = await fetch('/history', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ preview, urgency: '', email: body, data: composeData, isThread: false, threadCount: 0, thread: null })
+    });
+    if (res.ok) {
+      const json = await res.json();
+      item.id = json.id;
+      activeHistoryId = json.id;
+      renderHistory();
+    }
+  } catch(e) { console.error('[compose] history save failed', e); }
 }
 
 async function composeEmail() {
@@ -976,6 +1018,11 @@ async function composeEmail() {
     if (fullText && idx !== -1) {
       if (Object.keys(composeToneCache).length >= 20) composeToneCache = {};
       composeToneCache[cacheKey] = { subject: subj, body };
+      // Only save if no existing compose entry for this description already exists
+      const existingCompose = historyData.find(h => h.id === activeHistoryId && h.data && h.data.type === 'composed');
+      if (!existingCompose || existingCompose.data.description !== description) {
+        saveComposeToHistory(description, tone, subj, body, recipient);
+      }
     }
     subjectCard.classList.remove('subject-pending');
     bodyEl.classList.remove('streaming');
@@ -1116,7 +1163,11 @@ function resetAll() {
   document.getElementById('composeResult').style.display = 'none';
   document.getElementById('composeErrorBox').classList.remove('visible');
   isComposeMode   = false;
+  composeTone     = 'Professional';
   composeToneCache = {};
+  document.querySelectorAll('.compose-tone-pill, .compose-result-tone-pill').forEach(p =>
+    p.classList.toggle('active', p.dataset.tone === 'Professional')
+  );
   setModeUI('analyse');
   renderHistory();
   wsScroll(0);
@@ -1431,8 +1482,9 @@ function renderHistory() {
   const list  = document.getElementById('historyList');
   const empty = document.getElementById('historyEmpty');
 
-  const counts = { all: history.length, high: 0, medium: 0, low: 0 };
+  const counts = { all: history.length, high: 0, medium: 0, low: 0, composed: 0 };
   history.forEach(item => {
+    if (item.data && item.data.type === 'composed') { counts.composed++; return; }
     const u = (item.urgency || '').toLowerCase();
     if (u === 'high' || u === 'critical') counts.high++;
     else if (u === 'medium') counts.medium++;
@@ -1449,6 +1501,7 @@ function renderHistory() {
   let filtered = activeFilter === 'all'
     ? history
     : history.filter(h => {
+        if (activeFilter === 'composed') return h.data && h.data.type === 'composed';
         const u = (h.urgency || '').toLowerCase();
         if (activeFilter === 'high') return u === 'high' || u === 'critical';
         return u === activeFilter;
@@ -1475,10 +1528,13 @@ function renderHistory() {
     const msg   = document.getElementById('historyEmptyMsg');
     if (searchQuery) {
       if (title) title.textContent = 'No results';
-      if (msg)   msg.textContent   = 'No analyses match your search';
+      if (msg)   msg.textContent   = 'No items match your search';
     } else if (activeFilter === 'all') {
       if (title) title.textContent = 'No analyses yet';
       if (msg)   msg.textContent   = 'Your analyses will appear here';
+    } else if (activeFilter === 'composed') {
+      if (title) title.textContent = 'No composed emails yet';
+      if (msg)   msg.textContent   = 'Emails you write will appear here';
     } else {
       if (title) title.textContent = 'Nothing here';
       if (msg)   msg.textContent   = 'No ' + activeFilter + ' analyses yet';
@@ -1504,15 +1560,19 @@ function renderHistory() {
   const groupKeys = GROUP_ORDER.filter(g => groupMap[g]);
 
   function buildItem(item) {
+    const isComposed = item.data && item.data.type === 'composed';
     const urgLow     = (item.urgency || '').toLowerCase();
     const preview    = item.preview || '(empty)';
-    const senderName = (item.data && item.data.sender) ? item.data.sender : '';
+    const senderName = (!isComposed && item.data && item.data.sender) ? item.data.sender : '';
     const nameWords  = senderName.split(/\s+/).filter(Boolean);
-    const initials   = nameWords.length >= 2
-      ? (nameWords[0][0] + nameWords[nameWords.length - 1][0]).toUpperCase()
-      : (senderName.slice(0, 2).toUpperCase() || preview.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase() || '?');
-    const avatarBg   = senderHue(senderName || preview);
-    const snippet    = (item.data && item.data.summary) ? item.data.summary : '';
+    const initials   = isComposed ? '✎'
+      : nameWords.length >= 2
+        ? (nameWords[0][0] + nameWords[nameWords.length - 1][0]).toUpperCase()
+        : (senderName.slice(0, 2).toUpperCase() || preview.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase() || '?');
+    const avatarBg   = isComposed ? 'var(--teal-bg)' : senderHue(senderName || preview);
+    const snippet    = isComposed
+      ? (item.data.subject || '')
+      : (item.data && item.data.summary) ? item.data.summary : '';
 
     const div = document.createElement('div');
     div.className = 'sb-item' + (item.id === activeHistoryId ? ' active' : '');
@@ -1520,9 +1580,9 @@ function renderHistory() {
 
     /* Avatar */
     const avatar = document.createElement('div');
-    avatar.className = 'sb-avatar';
+    avatar.className = 'sb-avatar' + (isComposed ? ' sb-avatar-compose' : '');
     avatar.style.background = avatarBg;
-    avatar.style.color = 'white';
+    avatar.style.color = isComposed ? 'var(--teal)' : 'white';
     avatar.textContent = initials;
 
     /* Body */
@@ -1556,7 +1616,23 @@ function renderHistory() {
 
     const meta = document.createElement('div');
     meta.className = 'sb-meta';
-    if (item.urgency) {
+    if (isComposed) {
+      const badge = document.createElement('span');
+      badge.className = 'u-badge composed';
+      const dot = document.createElement('span');
+      dot.className = 'dot';
+      badge.appendChild(dot);
+      badge.appendChild(document.createTextNode('Composed'));
+      if (item.data.tone) {
+        const toneBadge = document.createElement('span');
+        toneBadge.className = 'sb-tone-tag';
+        toneBadge.textContent = item.data.tone;
+        meta.appendChild(badge);
+        meta.appendChild(toneBadge);
+      } else {
+        meta.appendChild(badge);
+      }
+    } else if (item.urgency) {
       const badge = document.createElement('span');
       const bc    = badgeMap[urgLow] || urgLow;
       badge.className = 'u-badge ' + bc;
@@ -1626,9 +1702,34 @@ function loadHistoryItem(id) {
   if (!item) return;
 
   activeHistoryId = id;
-  activeTone      = 'Professional';
   document.getElementById('threadActionsBar').classList.remove('visible');
   document.getElementById('threadView').classList.remove('visible');
+
+  if (item.data && item.data.type === 'composed') {
+    showComposeMode();
+    const desc      = item.data.description || '';
+    const recipient = item.data.recipient   || '';
+    document.getElementById('composeRecipient').value   = recipient;
+    document.getElementById('composeDescription').value = desc;
+    autoResizeComposeTa();
+    const tone = item.data.tone || 'Professional';
+    composeTone = tone;
+    document.querySelectorAll('.compose-tone-pill, .compose-result-tone-pill').forEach(p =>
+      p.classList.toggle('active', p.dataset.tone === tone)
+    );
+    const cacheKey = tone + '\x00' + desc + '\x00' + recipient;
+    if (!composeToneCache[cacheKey]) {
+      composeToneCache[cacheKey] = { subject: item.data.subject || '', body: item.email || '' };
+    }
+    document.getElementById('composePanel').style.display = 'none';
+    showComposeResult({ subject: item.data.subject || '', body: item.email || '' });
+    renderHistory();
+    wsScroll(0);
+    if (window.innerWidth < 700) closeSidebar();
+    return;
+  }
+
+  activeTone = 'Professional';
 
   if (item.isThread && item.thread) {
     currentThread = item.thread.map(t => ({ email: t.email, analysis: t.analysis, date: t.date }));
@@ -1897,7 +1998,8 @@ document.addEventListener('keydown', function(e) {
   on('copyComposeSubjectBtn', 'click', () => copyCompose(document.getElementById('composeSubject').textContent));
   on('copyComposeBodyBtn',    'click', () => copyCompose(document.getElementById('composeBody').textContent));
   on('copyComposeAllBtn',     'click', () => copyCompose('Subject: ' + document.getElementById('composeSubject').textContent + '\n\n' + document.getElementById('composeBody').textContent));
-  qsa('.compose-tone-pill',   'click', e => setComposeTone(e.currentTarget.dataset.tone));
+  qsa('.compose-tone-pill',        'click', e => setComposeTone(e.currentTarget.dataset.tone));
+  qsa('.compose-result-tone-pill', 'click', e => setComposeTone(e.currentTarget.dataset.tone));
 })();
 
 loadHistory();
