@@ -114,10 +114,17 @@
           <div><strong id="historyCount">0</strong> analyses stored</div>
           <div class="sb-foot-bar"><div class="sb-foot-bar-fill" id="historyBar"></div></div>
         </div>
-      </div>
-      <div class="sb-privacy-row">
-        <button class="sb-text-action" id="clearHistoryBtn">Clear history</button>
-        <a href="/privacy" class="sb-privacy-link">Privacy</a>
+        <div class="sb-foot-actions">
+          <button class="nav-icon-btn" id="clearHistoryBtn" title="Clear history" aria-label="Clear history">
+            <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.5h10M6 2.5h4M7 7v4M9 7v4"/><path d="M4 4.5l.7 8a1.5 1.5 0 0 0 1.5 1.5h3.6a1.5 1.5 0 0 0 1.5-1.5l.7-8"/></svg>
+          </button>
+          <a href="/settings" class="nav-icon-btn" title="Settings" aria-label="Settings">
+            <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M12.95 3.05l-1.06 1.06M4.11 11.89l-1.06 1.06"/></svg>
+          </a>
+          <a href="/privacy" class="nav-icon-btn" title="Privacy" aria-label="Privacy policy">
+            <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2L3 4v4c0 3 2.5 5.5 5 6 2.5-.5 5-3 5-6V4L8 2z"/></svg>
+          </a>
+        </div>
       </div>
     </aside>
 
@@ -1412,7 +1419,8 @@ async function deleteHistoryItem(id) {
 }
 
 async function clearHistory() {
-  if (!confirm('Clear all history?')) return;
+  if (historyData.length === 0) return;
+  if (!confirm('Clear all history? This cannot be undone.')) return;
   try { await fetch('/history', { method: 'DELETE' }); } catch(e) {}
   historyData     = [];
   activeHistoryId = null;

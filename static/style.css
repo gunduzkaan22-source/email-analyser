@@ -1,5 +1,42 @@
 /* MailLens — design tokens + base */
 
+/* ── Self-hosted Geist fonts (GDPR-safe, no Google Fonts) ── */
+@font-face {
+  font-family: 'Geist';
+  src: url('/static/fonts/Geist-Regular.woff2') format('woff2');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Geist';
+  src: url('/static/fonts/Geist-Medium.woff2') format('woff2');
+  font-weight: 500; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Geist';
+  src: url('/static/fonts/Geist-SemiBold.woff2') format('woff2');
+  font-weight: 600; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Geist';
+  src: url('/static/fonts/Geist-Bold.woff2') format('woff2');
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('/static/fonts/GeistMono-Regular.woff2') format('woff2');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('/static/fonts/GeistMono-Medium.woff2') format('woff2');
+  font-weight: 500; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('/static/fonts/GeistMono-SemiBold.woff2') format('woff2');
+  font-weight: 600; font-style: normal; font-display: swap;
+}
+
 :root {
   --bg-0: oklch(0.16 0.022 252);
   --bg-1: oklch(0.20 0.024 252);
@@ -37,8 +74,8 @@
   --radius-lg: 14px;
   --shadow-1: 0 1px 0 oklch(1 0 0 / 0.04) inset, 0 1px 2px oklch(0 0 0 / 0.4);
   --shadow-2: 0 1px 0 oklch(1 0 0 / 0.05) inset, 0 8px 24px oklch(0 0 0 / 0.35);
-  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', sans-serif;
-  --font-mono: ui-monospace, 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+  --font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
 }
 
 [data-theme="light"] {
@@ -181,11 +218,12 @@ textarea, input { font-family: inherit; }
 .u-badge.crit { color: var(--u-crit); background: var(--u-crit-bg); animation: pulse 2.4s ease-in-out infinite; }
 @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 oklch(0.70 0.190 25 / 0.4); } 50% { box-shadow: 0 0 0 4px oklch(0.70 0.190 25 / 0); } }
 .tag { display: inline-flex; align-items: center; font-size: 10.5px; padding: 1px 6px; border-radius: 4px; background: var(--bg-2); border: 1px solid var(--border-soft); color: var(--text-3); font-weight: 500; }
-.sb-foot { border-top: 1px solid var(--border); padding: 10px 14px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.sb-foot { border-top: 1px solid var(--border); padding: 10px 10px 10px 14px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .sb-foot-stats { flex: 1; font-size: 11.5px; color: var(--text-3); }
 .sb-foot-stats strong { color: var(--text-2); font-weight: 500; }
 .sb-foot-bar { margin-top: 4px; height: 3px; background: var(--bg-2); border-radius: 2px; overflow: hidden; }
 .sb-foot-bar-fill { height: 100%; background: linear-gradient(90deg, var(--teal-dim), var(--teal)); width: 0%; transition: width 0.3s; }
+.sb-foot-actions { display: flex; gap: 2px; flex-shrink: 0; }
 
 /* ── Workspace ── */
 .workspace { display: flex; flex-direction: column; overflow: hidden; background: var(--bg-0); min-height: 0; }
@@ -366,7 +404,21 @@ textarea, input { font-family: inherit; }
 .card.urgency-high   { border-color: oklch(0.74 0.155 45 / 0.5); }
 .card.urgency-critical { border-color: oklch(0.70 0.190 25 / 0.5); }
 
-.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(8px); background: var(--bg-3); color: var(--text); font-size: 13px; padding: 9px 16px; border-radius: 8px; border: 1px solid var(--border-strong); box-shadow: var(--shadow-2); opacity: 0; transition: opacity 0.2s, transform 0.2s; pointer-events: none; z-index: 100; white-space: nowrap; }
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(10px);
+  background: var(--bg-3); color: var(--text); font-size: 12.5px; font-weight: 500;
+  padding: 8px 14px 8px 10px; border-radius: 8px; border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-2); opacity: 0; transition: opacity 0.18s, transform 0.18s;
+  pointer-events: none; z-index: 100; white-space: nowrap;
+  display: flex; align-items: center; gap: 7px;
+}
+.toast::before {
+  content: '';
+  width: 16px; height: 16px; flex-shrink: 0;
+  border-radius: 50%; background: var(--teal-bg); border: 1px solid oklch(0.55 0.090 195 / 0.4);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' width='10' height='10' fill='none' stroke='oklch(0.80 0.135 195)' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3.5 8.2L6.5 11l6-6.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: center;
+}
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 .sb-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 36px 20px 28px; }
@@ -656,34 +708,7 @@ textarea, input { font-family: inherit; }
 }
 .login-privacy-link a:hover { color: var(--teal); }
 
-/* Sidebar — footer action row */
-.sb-privacy-row {
-  border-top: 1px solid var(--border);
-  padding: 8px 14px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.sb-privacy-link {
-  font-size: 11px;
-  color: var(--text-4);
-  text-decoration: none;
-  font-family: var(--font-mono);
-  letter-spacing: 0.01em;
-}
-.sb-privacy-link:hover { color: var(--teal); }
-.sb-text-action {
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: 11px;
-  font-family: var(--font-mono);
-  letter-spacing: 0.01em;
-  color: var(--text-4);
-  cursor: pointer;
-}
-.sb-text-action:hover { color: var(--u-high); }
+/* sb-privacy-row removed — replaced by icon buttons in .sb-foot-actions */
 
 /* ── Privacy page ── */
 .privacy-body {
