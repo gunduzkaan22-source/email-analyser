@@ -454,7 +454,7 @@
 
           <!-- Compose result -->
           <div class="compose-result" id="composeResult" style="display:none">
-            <div class="compose-subject-card">
+            <div class="compose-subject-card" id="composeSubjectCard">
               <div class="compose-subject-meta">
                 <span class="compose-subject-label">Subject</span>
                 <button class="btn-ghost btn-sm" id="copyComposeSubjectBtn" title="Copy subject">
@@ -473,7 +473,7 @@
                 </button>
               </div>
               <div class="compose-body-text" id="composeBody"></div>
-              <div class="compose-result-actions">
+              <div class="compose-result-actions" id="composeResultActions" style="display:none">
                 <button class="btn-ghost btn-sm" id="copyComposeAllBtn">
                   <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="9" height="9" rx="1.5"/><path d="M3 12V3h9"/></svg>
                   Copy all
@@ -905,20 +905,17 @@ function setComposeTone(tone) {
   );
   const description = document.getElementById('composeDescription').value.trim();
   const recipient   = document.getElementById('composeRecipient').value.trim();
-  const cacheKey    = tone + ':' + description + ':' + recipient;
+  const cacheKey    = tone + '\x00' + description + '\x00' + recipient;
   if (composeToneCache[cacheKey] && document.getElementById('composeResult').style.display !== 'none') {
+    document.getElementById('composePanel').style.display = 'none';
     showComposeResult(composeToneCache[cacheKey]);
   }
 }
 
 function showComposeResult(data) {
   document.getElementById('composeSubject').textContent = data.subject || '';
-  const bodyEl = document.getElementById('composeBody');
-  bodyEl.textContent = '';
-  (data.body || '').split('\n').forEach(function(line, i, arr) {
-    bodyEl.appendChild(document.createTextNode(line));
-    if (i < arr.length - 1) bodyEl.appendChild(document.createElement('br'));
-  });
+  document.getElementById('composeBody').textContent = data.body || '';
+  document.getElementById('composeResultActions').style.display = '';
   document.getElementById('composeResult').style.display = '';
   wsScroll(0);
 }
@@ -934,42 +931,112 @@ async function composeEmail() {
 
   const tone      = composeTone;
   const recipient = document.getElementById('composeRecipient').value.trim();
-  const cacheKey  = tone + ':' + description + ':' + recipient;
+  const cacheKey  = tone + '\x00' + description + '\x00' + recipient;
 
   if (composeToneCache[cacheKey]) {
+    document.getElementById('composePanel').style.display = 'none';
     showComposeResult(composeToneCache[cacheKey]);
     return;
   }
 
   document.getElementById('composeErrorBox').classList.remove('visible');
   document.getElementById('composePanel').style.display = 'none';
-  document.getElementById('composeLoading').style.display = '';
-  document.getElementById('composeResult').style.display = 'none';
+  document.getElementById('composeLoading').style.display = 'none';
+
+  // Prepare streaming result view
+  const subjectEl   = document.getElementById('composeSubject');
+  const bodyEl      = document.getElementById('composeBody');
+  const subjectCard = document.getElementById('composeSubjectCard');
+  subjectEl.textContent = '';
+  bodyEl.textContent    = '';
+  subjectCard.classList.add('subject-pending');
+  bodyEl.classList.add('streaming');
+  document.getElementById('composeResultActions').style.display = 'none';
+  document.getElementById('composeResult').style.display = '';
+
+  let fullText    = '';
+  let subjectDone = false;
+  let finalized   = false;
+  let _reader     = null;
+
+  function finalize() {
+    if (finalized) return;
+    finalized = true;
+    const idx = fullText.indexOf('\n\n');
+    let subj, body;
+    if (idx !== -1) {
+      subj = fullText.slice(0, idx).trim().replace(/^subject:\s*/i, '');
+      body = fullText.slice(idx + 2);
+    } else {
+      subj = subjectEl.textContent;
+      body = fullText.trim();
+    }
+    subjectEl.textContent = subj;
+    bodyEl.textContent = body;
+    if (fullText && idx !== -1) {
+      if (Object.keys(composeToneCache).length >= 20) composeToneCache = {};
+      composeToneCache[cacheKey] = { subject: subj, body };
+    }
+    subjectCard.classList.remove('subject-pending');
+    bodyEl.classList.remove('streaming');
+    document.getElementById('composeResultActions').style.display = '';
+  }
 
   try {
-    const res  = await fetch('/compose', {
+    const res = await fetch('/compose', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ description, tone, recipient }),
     });
-    const data = await res.json();
-    document.getElementById('composeLoading').style.display = 'none';
-
-    if (data.error) {
-      document.getElementById('composePanel').style.display = '';
-      const eb = document.getElementById('composeErrorBox');
-      eb.textContent = data.error;
-      eb.classList.add('visible');
-    } else {
-      composeToneCache[cacheKey] = data;
-      document.getElementById('composePanel').style.display = '';
-      showComposeResult(data);
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.error || 'Request failed.');
     }
-  } catch (_) {
-    document.getElementById('composeLoading').style.display = 'none';
+
+    _reader = res.body.getReader();
+    const reader  = _reader;
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    function processLine(line) {
+      if (!line.startsWith('data: ')) return;
+      const payload = line.slice(6).trim();
+      if (payload === '[DONE]') { finalize(); return; }
+      let parsed;
+      try { parsed = JSON.parse(payload); } catch { return; }
+      if (parsed.error) throw new Error(parsed.error);
+
+      fullText += (parsed.chunk || '').replace(/\r\n/g, '\n');
+
+      // Reveal subject as soon as we hit the blank-line separator
+      const idx = fullText.indexOf('\n\n');
+      if (idx !== -1 && !subjectDone) {
+        subjectDone = true;
+        subjectCard.classList.remove('subject-pending');
+        subjectEl.textContent = fullText.slice(0, idx).trim().replace(/^subject:\s*/i, '');
+      }
+      if (idx !== -1) bodyEl.textContent = fullText.slice(idx + 2);
+    }
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) processLine(line);
+    }
+    // Flush any remaining bytes the loop didn't consume
+    if (buffer.trim()) processLine(buffer.trim());
+    finalize(); // idempotent — no-ops if [DONE] already triggered it
+  } catch (err) {
+    if (_reader) _reader.cancel().catch(() => {});
+    subjectCard.classList.remove('subject-pending');
+    bodyEl.classList.remove('streaming');
+    document.getElementById('composeResult').style.display = 'none';
     document.getElementById('composePanel').style.display = '';
     const eb = document.getElementById('composeErrorBox');
-    eb.textContent = 'Something went wrong. Please try again.';
+    eb.textContent = err.message || 'Something went wrong. Please try again.';
     eb.classList.add('visible');
   }
 }
@@ -977,9 +1044,10 @@ async function composeEmail() {
 function regenerateCompose() {
   const description = document.getElementById('composeDescription').value.trim();
   const recipient   = document.getElementById('composeRecipient').value.trim();
-  const cacheKey    = composeTone + ':' + description + ':' + recipient;
+  const cacheKey    = composeTone + '\x00' + description + '\x00' + recipient;
   delete composeToneCache[cacheKey];
   document.getElementById('composeResult').style.display = 'none';
+  document.getElementById('composePanel').style.display = 'none';
   composeEmail();
 }
 
@@ -988,13 +1056,19 @@ function composeEditPrompt() {
   document.getElementById('composePanel').style.display = '';
 }
 
-function copyCompose(text, btnId) {
+function copyCompose(text) {
   const finish = (ok) => {
     if (ok) showToast('Copied to clipboard');
     else showToast('Copy failed — please select the text manually');
   };
   if (navigator.clipboard) { navigator.clipboard.writeText(text).then(() => finish(true)).catch(() => finish(false)); }
   else { finish(false); }
+}
+
+function autoResizeComposeTa() {
+  const ta = document.getElementById('composeDescription');
+  ta.style.height = 'auto';
+  ta.style.height = Math.max(120, ta.scrollHeight) + 'px';
 }
 
 /* ── Copy reply ── */
@@ -1816,12 +1890,13 @@ document.addEventListener('keydown', function(e) {
   on('threadHeadNewBtn',     'click', newAnalysis);
   on('threadAnalyseBtn',     'click', analyseThreadEmail);
 
+  on('composeDescription', 'input', autoResizeComposeTa);
   on('composeBtn',            'click', composeEmail);
   on('regenerateComposeBtn',  'click', regenerateCompose);
   on('composeEditBtn',        'click', composeEditPrompt);
-  on('copyComposeSubjectBtn', 'click', () => copyCompose(document.getElementById('composeSubject').textContent, 'copyComposeSubjectBtn'));
-  on('copyComposeBodyBtn',    'click', () => copyCompose(document.getElementById('composeBody').textContent, 'copyComposeBodyBtn'));
-  on('copyComposeAllBtn',     'click', () => copyCompose('Subject: ' + document.getElementById('composeSubject').textContent + '\n\n' + document.getElementById('composeBody').textContent, 'copyComposeAllBtn'));
+  on('copyComposeSubjectBtn', 'click', () => copyCompose(document.getElementById('composeSubject').textContent));
+  on('copyComposeBodyBtn',    'click', () => copyCompose(document.getElementById('composeBody').textContent));
+  on('copyComposeAllBtn',     'click', () => copyCompose('Subject: ' + document.getElementById('composeSubject').textContent + '\n\n' + document.getElementById('composeBody').textContent));
   qsa('.compose-tone-pill',   'click', e => setComposeTone(e.currentTarget.dataset.tone));
 })();
 
