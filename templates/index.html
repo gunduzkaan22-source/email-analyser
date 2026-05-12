@@ -52,7 +52,7 @@
     <a href="/settings" class="nav-icon-btn" title="Settings" aria-label="Settings">
       <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M12.95 3.05l-1.06 1.06M4.11 11.89l-1.06 1.06"/></svg>
     </a>
-    <button class="nav-icon-btn" id="signOutBtn" title="Sign out" aria-label="Sign out" style="font-size:12px;letter-spacing:.01em;padding:0 10px;">Sign out</button>
+    <button class="nav-icon-btn" id="signOutBtn" title="Sign out" aria-label="Sign out">Sign out</button>
   </nav>
 
   <!-- ── Main split ── -->
@@ -98,7 +98,7 @@
 
       <div class="sb-list" id="historyList"></div>
 
-      <div class="sb-empty" id="historyEmpty" style="display:none">
+      <div class="sb-empty hidden" id="historyEmpty">
         <div class="sb-empty-art" aria-hidden="true">
           <svg viewBox="0 0 80 64" width="80" height="64" fill="none">
             <rect x="6" y="14" width="68" height="42" rx="6" stroke="var(--border-strong)" stroke-width="1.2" fill="var(--bg-1)"/>
@@ -145,7 +145,7 @@
             <button class="seg-btn" id="modeThread" disabled>
               <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.5a1.5 1.5 0 0 1 1.5-1.5h7a1.5 1.5 0 0 1 1.5 1.5v5a1.5 1.5 0 0 1-1.5 1.5H8l-3 2.5V11H4.5A1.5 1.5 0 0 1 3 9.5v-5z"/></svg>
               Thread
-              <span id="threadCountBadge" style="display:none;font-family:var(--font-mono);font-size:10px;font-weight:500;padding:0 5px;border-radius:4px;background:var(--bg-1);color:var(--text-3);border:1px solid var(--border)"></span>
+              <span id="threadCountBadge" class="thread-count-badge hidden"></span>
             </button>
             <button class="seg-btn" id="modeCompose">
               <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10.5V13h2.5l7-7L9 3.5l-7 7z"/><path d="M11.5 2l2.5 2.5"/></svg>
@@ -171,9 +171,9 @@
               <div class="ip-avatar" id="ipAvatar">?</div>
               <div>
                 <input type="text" id="senderName" class="ip-name-input" placeholder="Your sign-off name" autocomplete="name" />
-                <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-4);margin-top:1px">→ analysing incoming email</div>
+                <div class="tab-meta-label">→ analysing incoming email</div>
               </div>
-              <div class="ip-meta" id="ipMeta" style="margin-left:auto"></div>
+              <div class="ip-meta" id="ipMeta"></div>
             </div>
             <textarea id="emailInput" class="ip-textarea" placeholder="Paste the email you want to analyse here…"></textarea>
             <div class="error-box" id="errorBox"></div>
@@ -187,7 +187,7 @@
               <button class="btn-primary" id="analyseBtn">
                 <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5l1.2 3.3L12.5 7l-3.3 1.2L8 11.5 6.8 8.2 3.5 7l3.3-1.2L8 2.5z"/></svg>
                 <span id="btnLabel">Analyse Email</span>
-                <div class="btn-spinner" id="spinner" style="display:none"></div>
+                <div class="btn-spinner hidden" id="spinner"></div>
               </button>
             </div>
           </div>
@@ -195,10 +195,10 @@
           <!-- Loading skeleton -->
           <div class="loading-card" id="loadingCard">
             <div class="skeleton-lines">
-              <div class="skeleton-line" style="width:55%"></div>
-              <div class="skeleton-line" style="width:82%"></div>
-              <div class="skeleton-line" style="width:66%"></div>
-              <div class="skeleton-line" style="width:40%"></div>
+              <div class="skeleton-line skel-w-55"></div>
+              <div class="skeleton-line skel-w-82"></div>
+              <div class="skeleton-line skel-w-66"></div>
+              <div class="skeleton-line skel-w-40"></div>
             </div>
             <div class="loading-hint">
               <div class="dot-loading"><span></span><span></span><span></span></div>
@@ -309,7 +309,7 @@
               </div>
               <div class="reply-body" id="replyWrap">
                 <div id="replyVal"></div>
-                <div class="reply-regen-loading" id="replyRegenLoading" style="display:none">
+                <div class="reply-regen-loading hidden" id="replyRegenLoading">
                   <div class="dot-loading"><span></span><span></span><span></span></div>
                   Regenerating…
                 </div>
@@ -337,7 +337,7 @@
             </div>
 
             <!-- Excel export -->
-            <div class="excel-export-wrap" id="excelExportWrap" style="display:none">
+            <div class="excel-export-wrap hidden" id="excelExportWrap">
               <button class="excel-export-btn" id="exportBtn">
                 <div class="excel-icon-box">
                   <svg viewBox="0 0 22 22" width="20" height="20" fill="none">
@@ -393,9 +393,9 @@
                 <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.5a1.5 1.5 0 0 1 1.5-1.5h7a1.5 1.5 0 0 1 1.5 1.5v5a1.5 1.5 0 0 1-1.5 1.5H8l-3 2.5V11H4.5A1.5 1.5 0 0 1 3 9.5v-5z"/></svg>
                 Paste the next email in this thread
               </div>
-              <textarea id="threadEmailInput" class="ip-textarea" placeholder="Paste the reply or next email here…" style="min-height:140px;margin-top:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-0)"></textarea>
+              <textarea id="threadEmailInput" class="ip-textarea thread-email-textarea" placeholder="Paste the reply or next email here…"></textarea>
               <div class="thread-add-error" id="threadAddError"></div>
-              <div class="tone-bar" style="margin-top:10px;border-radius:8px;border:1px solid var(--border)">
+              <div class="tone-bar tone-bar--mt10">
                 <span class="tone-label">Tone</span>
                 <div class="tone-pills">
                   <button class="tone-pill thread-tone-pill active" data-tone="Professional"><span class="swatch"></span>Professional</button>
@@ -405,29 +405,29 @@
                   <button class="tone-pill thread-tone-pill" data-tone="Empathetic"><span class="swatch"></span>Empathetic</button>
                 </div>
               </div>
-              <div style="display:flex;justify-content:flex-end;margin-top:10px">
+              <div class="flex-row-end">
                 <button class="btn-primary" id="threadAnalyseBtn">
                   <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5l1.2 3.3L12.5 7l-3.3 1.2L8 11.5 6.8 8.2 3.5 7l3.3-1.2L8 2.5z"/></svg>
                   <span id="threadBtnLabel">Analyse Reply</span>
-                  <div class="btn-spinner" id="threadSpinner" style="display:none"></div>
+                  <div class="btn-spinner hidden" id="threadSpinner"></div>
                 </button>
               </div>
             </div>
           </div><!-- /threadView -->
 
           <!-- Compose panel -->
-          <div class="compose-panel" id="composePanel" style="display:none">
-            <div class="card" style="padding:20px 24px">
+          <div class="compose-panel hidden" id="composePanel">
+            <div class="card card-padded">
               <div class="compose-recipient-row">
                 <div class="compose-avatar" id="composeAvatar">✉</div>
-                <div style="flex:1">
+                <div class="flex-fill">
                   <input type="text" id="composeRecipient" class="compose-recipient-input" placeholder="To (optional — e.g. Sarah, the team, my manager)" autocomplete="off" maxlength="80" />
-                  <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-4);margin-top:1px">→ composing new email</div>
+                  <div class="tab-meta-label">→ composing new email</div>
                 </div>
               </div>
               <textarea id="composeDescription" class="compose-textarea" placeholder="Describe the email you want to write… (e.g. 'Follow up with John about the Q3 proposal, mention the deadline is Friday and ask if he needs any more info')"></textarea>
               <div class="error-box" id="composeErrorBox"></div>
-              <div class="tone-bar" style="margin-top:12px;border-radius:8px;border:1px solid var(--border)">
+              <div class="tone-bar tone-bar--mt12">
                 <span class="tone-label">Tone</span>
                 <div class="tone-pills">
                   <button class="tone-pill compose-tone-pill active" data-tone="Professional"><span class="swatch"></span>Professional</button>
@@ -437,26 +437,26 @@
                   <button class="tone-pill compose-tone-pill" data-tone="Empathetic"><span class="swatch"></span>Empathetic</button>
                 </div>
               </div>
-              <div style="display:flex;justify-content:flex-end;margin-top:12px">
+              <div class="flex-row-end flex-row-end--mt12">
                 <button class="btn-primary" id="composeBtn">
                   <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10.5V13h2.5l7-7L9 3.5l-7 7z"/><path d="M11.5 2l2.5 2.5"/></svg>
                   Write Email
-                  <div class="btn-spinner" id="composeSpinner" style="display:none"></div>
+                  <div class="btn-spinner hidden" id="composeSpinner"></div>
                 </button>
               </div>
             </div>
           </div><!-- /composePanel -->
 
           <!-- Compose loading skeleton -->
-          <div class="compose-loading" id="composeLoading" style="display:none">
-            <div class="skel" style="height:18px;width:38%;margin-bottom:12px;border-radius:6px"></div>
-            <div class="skel" style="height:14px;width:100%;margin-bottom:7px;border-radius:4px"></div>
-            <div class="skel" style="height:14px;width:94%;margin-bottom:7px;border-radius:4px"></div>
-            <div class="skel" style="height:14px;width:82%;border-radius:4px"></div>
+          <div class="compose-loading hidden" id="composeLoading">
+            <div class="skel skel--title"></div>
+            <div class="skel skel--body-1"></div>
+            <div class="skel skel--body-2"></div>
+            <div class="skel skel--body-3"></div>
           </div>
 
           <!-- Compose result -->
-          <div class="compose-result" id="composeResult" style="display:none">
+          <div class="compose-result hidden" id="composeResult">
             <div class="compose-result-tone-bar">
               <span class="tone-label">Tone</span>
               <div class="tone-pills">
@@ -477,7 +477,7 @@
               </div>
               <div class="compose-subject-text" id="composeSubject"></div>
             </div>
-            <div class="card" style="padding:20px 24px;margin-top:10px">
+            <div class="card card-padded--mt10">
               <div class="compose-body-header">
                 <span class="compose-body-label">Email body</span>
                 <button class="btn-ghost btn-sm" id="copyComposeBodyBtn" title="Copy body">
@@ -486,7 +486,7 @@
                 </button>
               </div>
               <div class="compose-body-text" id="composeBody"></div>
-              <div class="compose-result-actions" id="composeResultActions" style="display:none">
+              <div class="compose-result-actions hidden" id="composeResultActions">
                 <button class="btn-ghost btn-sm" id="copyComposeAllBtn">
                   <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="9" height="9" rx="1.5"/><path d="M3 12V3h9"/></svg>
                   Copy all
@@ -512,6 +512,7 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script nonce="{{ csp_nonce }}">
+const CSRF_TOKEN = {{ csrf_token | tojson }};
 let historyData         = [];
 let activeHistoryId     = null;
 let activeFilter        = 'all';
@@ -627,8 +628,8 @@ function updateThreadBadge() {
   const badge = document.getElementById('threadCountBadge');
   if (!badge) return;
   const n = currentThread.length;
-  if (n > 0) { badge.textContent = n; badge.style.display = ''; }
-  else { badge.style.display = 'none'; }
+  if (n > 0) { badge.textContent = n; badge.classList.remove('hidden'); }
+  else { badge.classList.add('hidden'); }
 }
 
 /* ── Analyse ── */
@@ -653,7 +654,7 @@ async function analyse() {
 
   btn.disabled = true;
   btnLabel.textContent = 'Analysing…';
-  spinner.style.display = 'block';
+  spinner.classList.remove('hidden');
   loading.classList.add('visible');
 
   try {
@@ -674,7 +675,7 @@ async function analyse() {
 
     lastAnalysisResult = { data, email };
     renderResults(data);
-    document.getElementById('excelExportWrap').style.display = '';
+    document.getElementById('excelExportWrap').classList.remove('hidden');
     activeHistoryId = await saveToHistory(email, data);
     activeFilter = 'all';
     renderHistory();
@@ -692,7 +693,7 @@ async function analyse() {
   } finally {
     btn.disabled = false;
     btnLabel.textContent = 'Analyse Email';
-    spinner.style.display = 'none';
+    spinner.classList.add('hidden');
     loading.classList.remove('visible');
   }
 }
@@ -727,14 +728,14 @@ function renderResults(data) {
   }
 
   if (moodScores && typeof moodScores === 'object' && Object.keys(moodScores).length > 0) {
-    moodEl.style.display = 'none';
+    moodEl.classList.add('hidden');
     moodEl.textContent = '';
     ['professional', 'friendly', 'urgent', 'frustrated', 'formal'].forEach(k => {
       const score = Math.max(0, Math.min(100, Number(moodScores[k]) || 0));
       buildBar(k.charAt(0).toUpperCase() + k.slice(1), score, true);
     });
   } else {
-    moodEl.style.display = '';
+    moodEl.classList.remove('hidden');
     moodEl.textContent = data.sender_mood || '—';
     const toneScores = data.tone_scores || {};
     ['frustration', 'urgency', 'formality', 'warmth'].filter(k => toneScores[k] !== undefined).forEach(k => {
@@ -900,14 +901,14 @@ async function setTone(tone) {
 /* ── Compose ── */
 function showComposeMode() {
   isComposeMode = true;
-  document.getElementById('inputPanel').style.display = 'none';
+  document.getElementById('inputPanel').classList.add('hidden');
   document.getElementById('results').classList.remove('visible');
   document.getElementById('loadingCard').classList.remove('visible');
   document.getElementById('threadActionsBar').classList.remove('visible');
   document.getElementById('threadView').classList.remove('visible');
-  document.getElementById('composePanel').style.display = '';
-  document.getElementById('composeLoading').style.display = 'none';
-  document.getElementById('composeResult').style.display = 'none';
+  document.getElementById('composePanel').classList.remove('hidden');
+  document.getElementById('composeLoading').classList.add('hidden');
+  document.getElementById('composeResult').classList.add('hidden');
   setModeUI('compose');
 }
 
@@ -931,8 +932,8 @@ function setComposeTone(tone) {
 function showComposeResult(data) {
   document.getElementById('composeSubject').textContent = data.subject || '';
   document.getElementById('composeBody').textContent = data.body || '';
-  document.getElementById('composeResultActions').style.display = '';
-  document.getElementById('composeResult').style.display = '';
+  document.getElementById('composeResultActions').classList.remove('hidden');
+  document.getElementById('composeResult').classList.remove('hidden');
   wsScroll(0);
 }
 
@@ -976,14 +977,14 @@ async function composeEmail() {
   const cacheKey  = tone + '\x00' + description + '\x00' + recipient;
 
   if (composeToneCache[cacheKey]) {
-    document.getElementById('composePanel').style.display = 'none';
+    document.getElementById('composePanel').classList.add('hidden');
     showComposeResult(composeToneCache[cacheKey]);
     return;
   }
 
   document.getElementById('composeErrorBox').classList.remove('visible');
-  document.getElementById('composePanel').style.display = 'none';
-  document.getElementById('composeLoading').style.display = 'none';
+  document.getElementById('composePanel').classList.add('hidden');
+  document.getElementById('composeLoading').classList.add('hidden');
 
   // Prepare streaming result view
   const subjectEl   = document.getElementById('composeSubject');
@@ -993,8 +994,8 @@ async function composeEmail() {
   bodyEl.textContent    = '';
   subjectCard.classList.add('subject-pending');
   bodyEl.classList.add('streaming');
-  document.getElementById('composeResultActions').style.display = 'none';
-  document.getElementById('composeResult').style.display = '';
+  document.getElementById('composeResultActions').classList.add('hidden');
+  document.getElementById('composeResult').classList.remove('hidden');
 
   let fullText    = '';
   let subjectDone = false;
@@ -1026,7 +1027,7 @@ async function composeEmail() {
     }
     subjectCard.classList.remove('subject-pending');
     bodyEl.classList.remove('streaming');
-    document.getElementById('composeResultActions').style.display = '';
+    document.getElementById('composeResultActions').classList.remove('hidden');
   }
 
   try {
@@ -1080,8 +1081,8 @@ async function composeEmail() {
     if (_reader) _reader.cancel().catch(() => {});
     subjectCard.classList.remove('subject-pending');
     bodyEl.classList.remove('streaming');
-    document.getElementById('composeResult').style.display = 'none';
-    document.getElementById('composePanel').style.display = '';
+    document.getElementById('composeResult').classList.add('hidden');
+    document.getElementById('composePanel').classList.remove('hidden');
     const eb = document.getElementById('composeErrorBox');
     eb.textContent = err.message || 'Something went wrong. Please try again.';
     eb.classList.add('visible');
@@ -1093,14 +1094,14 @@ function regenerateCompose() {
   const recipient   = document.getElementById('composeRecipient').value.trim();
   const cacheKey    = composeTone + '\x00' + description + '\x00' + recipient;
   delete composeToneCache[cacheKey];
-  document.getElementById('composeResult').style.display = 'none';
-  document.getElementById('composePanel').style.display = 'none';
+  document.getElementById('composeResult').classList.add('hidden');
+  document.getElementById('composePanel').classList.add('hidden');
   composeEmail();
 }
 
 function composeEditPrompt() {
-  document.getElementById('composeResult').style.display = 'none';
-  document.getElementById('composePanel').style.display = '';
+  document.getElementById('composeResult').classList.add('hidden');
+  document.getElementById('composePanel').classList.remove('hidden');
 }
 
 function copyCompose(text) {
@@ -1147,7 +1148,7 @@ function resetAll() {
   document.getElementById('urgencyPills').classList.remove('open');
   document.getElementById('urgencyManualLabel').classList.remove('visible');
   document.querySelectorAll('.urgency-pill-btn').forEach(p => p.classList.remove('selected'));
-  document.getElementById('excelExportWrap').style.display = 'none';
+  document.getElementById('excelExportWrap').classList.add('hidden');
   urgencyOverrideOpen = false;
   activeHistoryId = null;
   lastAnalysisResult = null;
@@ -1157,10 +1158,10 @@ function resetAll() {
   document.getElementById('threadActionsBar').classList.remove('visible');
   document.getElementById('threadView').classList.remove('visible');
   document.getElementById('modeThread').disabled = true;
-  document.getElementById('inputPanel').style.display = '';
-  document.getElementById('composePanel').style.display = 'none';
-  document.getElementById('composeLoading').style.display = 'none';
-  document.getElementById('composeResult').style.display = 'none';
+  document.getElementById('inputPanel').classList.remove('hidden');
+  document.getElementById('composePanel').classList.add('hidden');
+  document.getElementById('composeLoading').classList.add('hidden');
+  document.getElementById('composeResult').classList.add('hidden');
   document.getElementById('composeErrorBox').classList.remove('visible');
   isComposeMode   = false;
   composeTone     = 'Professional';
@@ -1222,12 +1223,6 @@ function renderThreadRail() {
   const trendLabel = { escalating: 'Escalating', cooling: 'De-escalating', stable: 'Stable' }[trend];
   const trendColor = { escalating: 'var(--u-crit)', cooling: 'var(--pos)', stable: 'var(--u-med)' }[trend];
 
-  const sparkBars = urgLevels.map(u => {
-    const cls    = (u === 'critical' || u === 'high') ? 'hot' : u === 'medium' ? 'warn' : 'cool';
-    const height = { low: 20, medium: 45, high: 75, critical: 100 }[u] || 20;
-    return `<div class="b ${cls}" style="height:${height}%"></div>`;
-  }).join('');
-
   const seen = new Set();
   const participants = [];
   currentThread.forEach((t, idx) => {
@@ -1246,28 +1241,78 @@ function renderThreadRail() {
     'linear-gradient(135deg,oklch(0.74 0.13 70),oklch(0.62 0.14 50))',
     'linear-gradient(135deg,oklch(0.65 0.13 320),oklch(0.55 0.14 280))',
   ];
-  const peopleHTML = participants.map((p, i) => {
-    const initials = p.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-    const bg = avatarColors[i % avatarColors.length];
-    return `<div class="rail-person">
-      <span class="av" style="background:${bg}">${escHtml(initials)}</span>
-      <span>${escHtml(p.name)}</span>
-      <span class="role">${p.role}</span>
-    </div>`;
-  }).join('');
 
-  rail.innerHTML = `
-    <div class="rail-section">
-      <div class="rail-label">Thread health</div>
-      <div class="rail-stat" style="color:${trendColor}">${trendLabel}</div>
-      <div class="rail-stat-sub">${currentThread.length} email${currentThread.length !== 1 ? 's' : ''} analysed</div>
-      <div class="rail-spark">${sparkBars}</div>
-    </div>
-    <div class="rail-section">
-      <div class="rail-label">Participants</div>
-      <div class="rail-people">${peopleHTML}</div>
-    </div>
-  `;
+  rail.textContent = '';
+
+  // Health section
+  const healthSection = document.createElement('div');
+  healthSection.className = 'rail-section';
+
+  const healthLabel = document.createElement('div');
+  healthLabel.className = 'rail-label';
+  healthLabel.textContent = 'Thread health';
+
+  const statEl = document.createElement('div');
+  statEl.className = 'rail-stat';
+  statEl.style.color = trendColor;
+  statEl.textContent = trendLabel;
+
+  const statSub = document.createElement('div');
+  statSub.className = 'rail-stat-sub';
+  statSub.textContent = `${currentThread.length} email${currentThread.length !== 1 ? 's' : ''} analysed`;
+
+  const spark = document.createElement('div');
+  spark.className = 'rail-spark';
+  urgLevels.forEach(u => {
+    const bar = document.createElement('div');
+    bar.className = 'b ' + ((u === 'critical' || u === 'high') ? 'hot' : u === 'medium' ? 'warn' : 'cool');
+    bar.style.height = ({ low: 20, medium: 45, high: 75, critical: 100 }[u] || 20) + '%';
+    spark.appendChild(bar);
+  });
+
+  healthSection.appendChild(healthLabel);
+  healthSection.appendChild(statEl);
+  healthSection.appendChild(statSub);
+  healthSection.appendChild(spark);
+
+  // Participants section
+  const peopleSection = document.createElement('div');
+  peopleSection.className = 'rail-section';
+
+  const peopleLabel = document.createElement('div');
+  peopleLabel.className = 'rail-label';
+  peopleLabel.textContent = 'Participants';
+
+  const peopleList = document.createElement('div');
+  peopleList.className = 'rail-people';
+  participants.forEach((p, i) => {
+    const initials = p.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    const personEl = document.createElement('div');
+    personEl.className = 'rail-person';
+
+    const av = document.createElement('span');
+    av.className = 'av';
+    av.style.background = avatarColors[i % avatarColors.length];
+    av.textContent = initials;
+
+    const nameEl = document.createElement('span');
+    nameEl.textContent = p.name;
+
+    const roleEl = document.createElement('span');
+    roleEl.className = 'role';
+    roleEl.textContent = p.role;
+
+    personEl.appendChild(av);
+    personEl.appendChild(nameEl);
+    personEl.appendChild(roleEl);
+    peopleList.appendChild(personEl);
+  });
+
+  peopleSection.appendChild(peopleLabel);
+  peopleSection.appendChild(peopleList);
+
+  rail.appendChild(healthSection);
+  rail.appendChild(peopleSection);
 }
 
 function buildThreadItemHTML(item, idx, escalated, urgency) {
@@ -1278,8 +1323,8 @@ function buildThreadItemHTML(item, idx, escalated, urgency) {
   const replyText  = escHtml(a.suggested_reply || '');
   const timeStr    = formatDate(item.date);
   const initials   = sender.replace(/[^A-Z]/g, '').slice(0, 2) || sender.slice(0, 2).toUpperCase();
-  const urgColors  = { low: 'var(--u-low)', medium: 'var(--u-med)', high: 'var(--u-high)', critical: 'var(--u-crit)' };
-  const avatarColor = urgColors[urgency] || 'var(--teal-dim)';
+  const urgAvatarClasses = { low: 't-msg-avatar--low', medium: 't-msg-avatar--medium', high: 't-msg-avatar--high', critical: 't-msg-avatar--critical' };
+  const avatarClass = Object.prototype.hasOwnProperty.call(urgAvatarClasses, urgency) ? urgAvatarClasses[urgency] : 't-msg-avatar--default';
 
   const insightKind = escalated ? 'Shift' : (urgency === 'critical' ? 'Critical' : 'Tone');
   const insightText = escalated
@@ -1287,19 +1332,19 @@ function buildThreadItemHTML(item, idx, escalated, urgency) {
     : escHtml(a.sender_mood || urgency.charAt(0).toUpperCase() + urgency.slice(1) + ' urgency detected.');
 
   const actionItems = actions.map(ai =>
-    `<li style="list-style:none;display:flex;gap:6px;align-items:flex-start;padding:4px 0"><span style="color:var(--teal);flex-shrink:0;margin-top:3px"><svg viewBox="0 0 16 16" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.2L6.5 11l6-6.5"/></svg></span>${escHtml(ai)}</li>`
+    `<li class="action-item-li"><span class="action-item-icon"><svg viewBox="0 0 16 16" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.2L6.5 11l6-6.5"/></svg></span>${escHtml(ai)}</li>`
   ).join('');
 
   return `
     <div class="t-msg">
-      <div class="t-msg-avatar" style="background:${avatarColor}">${escHtml(initials)}</div>
+      <div class="t-msg-avatar ${avatarClass}">${escHtml(initials)}</div>
       <div class="t-msg-card${escalated ? ' highlight' : ''}">
         <div class="t-msg-head">
           <span class="t-msg-from">${sender}</span>
           <span class="t-msg-to">to you</span>
           <span class="t-msg-time">${timeStr}</span>
         </div>
-        <div class="t-msg-body">${summary}${actionItems ? '<ul style="margin:10px 0 0;padding:0">' + actionItems + '</ul>' : ''}</div>
+        <div class="t-msg-body">${summary}${actionItems ? '<ul class="action-items-ul">' + actionItems + '</ul>' : ''}</div>
         <div class="t-insight">
           <span class="ico"><svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="3.5"/><path d="M9.5 9.5l3 3"/><circle cx="7" cy="7" r="1.2" fill="currentColor" stroke="none"/></svg></span>
           <strong>${insightKind}</strong>
@@ -1340,7 +1385,7 @@ async function analyseThreadEmail() {
 
   btn.disabled = true;
   label.textContent = 'Analysing…';
-  spinner.style.display = 'block';
+  spinner.classList.remove('hidden');
 
   try {
     const res = await fetch('/analyse-thread', {
@@ -1368,7 +1413,7 @@ async function analyseThreadEmail() {
   } finally {
     btn.disabled = false;
     label.textContent = 'Analyse Reply';
-    spinner.style.display = 'none';
+    spinner.classList.add('hidden');
   }
 }
 
@@ -1539,11 +1584,11 @@ function renderHistory() {
       if (title) title.textContent = 'Nothing here';
       if (msg)   msg.textContent   = 'No ' + activeFilter + ' analyses yet';
     }
-    empty.style.display = 'flex';
+    empty.classList.remove('hidden');
     return;
   }
 
-  empty.style.display = 'none';
+  empty.classList.add('hidden');
   list.innerHTML = '';
   const frag = document.createDocumentFragment();
   const badgeMap = { low: 'low', medium: 'med', high: 'high', critical: 'crit' };
@@ -1721,7 +1766,7 @@ function loadHistoryItem(id) {
     if (!composeToneCache[cacheKey]) {
       composeToneCache[cacheKey] = { subject: item.data.subject || '', body: item.email || '' };
     }
-    document.getElementById('composePanel').style.display = 'none';
+    document.getElementById('composePanel').classList.add('hidden');
     showComposeResult({ subject: item.data.subject || '', body: item.email || '' });
     renderHistory();
     wsScroll(0);
@@ -1736,7 +1781,7 @@ function loadHistoryItem(id) {
     isThreadMode  = true;
     currentEmail  = currentThread[0]?.email || '';
     lastAnalysisResult = null;
-    document.getElementById('excelExportWrap').style.display = 'none';
+    document.getElementById('excelExportWrap').classList.add('hidden');
     document.getElementById('results').classList.remove('visible');
     renderThreadView();
     document.getElementById('threadView').classList.add('visible');
@@ -1747,7 +1792,7 @@ function loadHistoryItem(id) {
     isThreadMode  = false;
     currentEmail  = item.email || '';
     lastAnalysisResult = { data: item.data, email: item.email || '' };
-    document.getElementById('excelExportWrap').style.display = '';
+    document.getElementById('excelExportWrap').classList.remove('hidden');
     renderResults(item.data);
 
     if (item.urgencyOverride) {
@@ -1848,7 +1893,10 @@ function setTheme(theme) {
 })();
 
 /* ── Auth user display ── */
-function doLogout() { window.location.href = '/logout'; }
+function doLogout() {
+  fetch('/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ csrf_token: CSRF_TOKEN }) })
+    .finally(() => { window.location.href = '/login'; });
+}
 document.getElementById('signOutBtn')?.addEventListener('click', doLogout);
 
 (async function fetchUser() {

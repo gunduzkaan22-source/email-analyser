@@ -1084,3 +1084,38 @@ textarea, input { font-family: inherit; }
 /* ── Settings page (styles are self-contained in templates/settings.html) ──── */
 
 .st-body { overflow-y: auto !important; }
+
+/* ── CSP-safe utility & layout classes ──────────────────────────────────────
+   .hidden uses no !important so that JS el.style.display = 'value' (inline)
+   still overrides it when needed for explicit show values (e.g. 'flex').
+   These classes appear LAST in the sheet so they win over earlier rules at
+   equal specificity (e.g. .reply-regen-loading { display:flex }).          */
+.hidden { display: none; }
+.mt-12 { margin-top: 12px; }
+#signOutBtn { font-size: 12px; letter-spacing: .01em; padding: 0 10px; width: auto; }
+.thread-count-badge { font-family: var(--font-mono); font-size: 10px; font-weight: 500; padding: 0 5px; border-radius: 4px; background: var(--bg-1); color: var(--text-3); border: 1px solid var(--border); }
+.tab-meta-label { font-family: var(--font-mono); font-size: 11px; color: var(--text-4); margin-top: 1px; }
+.skel-w-55 { width: 55%; }
+.skel-w-82 { width: 82%; }
+.skel-w-66 { width: 66%; }
+.skel-w-40 { width: 40%; }
+.thread-email-textarea { min-height: 140px; margin-top: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-0); }
+.tone-bar--mt10 { margin-top: 10px; border-radius: 8px; border: 1px solid var(--border); }
+.tone-bar--mt12 { margin-top: 12px; border-radius: 8px; border: 1px solid var(--border); }
+.flex-row-end { display: flex; justify-content: flex-end; margin-top: 10px; }
+.flex-row-end--mt12 { margin-top: 12px; }
+.card-padded { padding: 20px 24px; }
+.card-padded--mt10 { padding: 20px 24px; margin-top: 10px; }
+.flex-fill { flex: 1; }
+.skel--title  { height: 18px; width: 38%; margin-bottom: 12px; border-radius: 6px; }
+.skel--body-1 { height: 14px; width: 100%; margin-bottom:  7px; border-radius: 4px; }
+.skel--body-2 { height: 14px; width: 94%;  margin-bottom:  7px; border-radius: 4px; }
+.skel--body-3 { height: 14px; width: 82%;  border-radius: 4px; }
+.action-item-li   { list-style: none; display: flex; gap: 6px; align-items: flex-start; padding: 4px 0; }
+.action-item-icon { color: var(--teal); flex-shrink: 0; margin-top: 3px; }
+.action-items-ul  { margin: 10px 0 0; padding: 0; }
+.t-msg-avatar--low      { background: var(--u-low); }
+.t-msg-avatar--medium   { background: var(--u-med); }
+.t-msg-avatar--high     { background: var(--u-high); }
+.t-msg-avatar--critical { background: var(--u-crit); }
+.t-msg-avatar--default  { background: var(--teal-dim); }

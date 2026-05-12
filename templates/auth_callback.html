@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>MailLens — Signing in…</title>
+<style nonce="{{ csp_nonce }}">body{font-family:sans-serif;color:#888;text-align:center;margin-top:120px;background:#1a1d28}</style>
+</head>
+<body>
+<p>Signing in…</p>
+<script nonce="{{ csp_nonce }}">
+(function(){
+var h=location.hash.slice(1),p={};
+h.split('&').forEach(function(s){var i=s.indexOf('=');
+if(i>0)p[decodeURIComponent(s.slice(0,i))]=decodeURIComponent(s.slice(i+1));});
+if(p.access_token){
+fetch('/auth/session',{method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({access_token:p.access_token,refresh_token:p.refresh_token||''})})
+.then(function(r){return r.json();})
+.then(function(d){location.href=d.ok?'/':'/login?error=invalid_link';})
+.catch(function(){location.href='/login?error=invalid_link';});
+}else if(p.error){
+location.href='/login?error='+encodeURIComponent(p.error_description||p.error);
+}else{location.href='/login?error=invalid_link';}})();
+</script>
+</body>
+</html>

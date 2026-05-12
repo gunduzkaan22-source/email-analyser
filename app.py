@@ -4,11 +4,12 @@ import uuid
 import re
 import secrets
 import datetime
+import unicodedata
 from functools import wraps
 from io import BytesIO
 import anthropic
 from flask import (
-    Flask, render_template, render_template_string, request, jsonify,
+    Flask, render_template, request, jsonify,
     Response, stream_with_context, session, redirect, g,
 )
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -82,8 +83,15 @@ def _generate_csp_nonce():
 
 
 @app.context_processor
-def _inject_csp_nonce():
-    return {'csp_nonce': g.get('csp_nonce', '')}
+def _inject_template_globals():
+    csrf = session.get('csrf_token', '')
+    return {'csp_nonce': g.get('csp_nonce', ''), 'csrf_token': csrf}
+
+
+def _ensure_csrf_token():
+    if 'csrf_token' not in session:
+        session['csrf_token'] = secrets.token_urlsafe(32)
+    return session['csrf_token']
 
 _anthropic = anthropic.Anthropic(api_key=_anthropic_api_key)
 
@@ -98,6 +106,7 @@ def auth_required(f):
             if request.is_json or request.headers.get('Accept', '').startswith('text/event-stream'):
                 return jsonify({'error': 'Authentication required', 'redirect': '/login'}), 401
             return redirect('/login')
+        _ensure_csrf_token()  # lazily mint token for pre-deployment sessions
         return f(*args, **kwargs)
     return decorated
 
@@ -124,7 +133,7 @@ def set_security_headers(response):
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
         f"script-src 'self' 'nonce-{nonce}'; "
-        "style-src 'self' 'unsafe-inline'; "
+        f"style-src 'self' 'nonce-{nonce}'; "
         "font-src 'self'; "
         "img-src 'self' data:; "
         "connect-src 'self'; "
@@ -205,37 +214,18 @@ def auth_callback():
             response = client.auth.verify_otp({'token_hash': token_hash, 'type': otp_type})
             user = response.user
             if user and user.id:
+                session.clear()
                 session.permanent = True
                 session['user_id'] = user.id
                 session['user_email'] = user.email or ''
+                _ensure_csrf_token()
                 return redirect('/')
         except Exception as e:
             app.logger.error('verify_otp failed (type=%s): %s', otp_type, type(e).__name__)
         return redirect('/login?error=invalid_link')
 
     # No token_hash in query string — return a JS bridge for hash-fragment flow
-    return render_template_string(
-        '<!DOCTYPE html><html><head><title>MailLens — Signing in…</title>'
-        '<style>body{font-family:sans-serif;color:#888;text-align:center;margin-top:120px;'
-        'background:#1a1d28}</style></head><body>'
-        '<p>Signing in…</p>'
-        '<script nonce="{{ csp_nonce }}">'
-        '(function(){'
-        'var h=location.hash.slice(1),p={};'
-        'h.split("&").forEach(function(s){var i=s.indexOf("=");'
-        'if(i>0)p[decodeURIComponent(s.slice(0,i))]=decodeURIComponent(s.slice(i+1));});'
-        'if(p.access_token){'
-        'fetch("/auth/session",{method:"POST",'
-        'headers:{"Content-Type":"application/json"},'
-        'body:JSON.stringify({access_token:p.access_token,refresh_token:p.refresh_token||""})})'
-        '.then(function(r){return r.json();})'
-        '.then(function(d){location.href=d.ok?"/":"/login?error=invalid_link";})'
-        '.catch(function(){location.href="/login?error=invalid_link";});'
-        '}else if(p.error){'
-        'location.href="/login?error="+encodeURIComponent(p.error_description||p.error);'
-        '}else{location.href="/login?error=invalid_link";}})();'
-        '</script></body></html>'
-    )
+    return render_template('auth_callback.html')
 
 
 @app.route('/auth/session', methods=['POST'])
@@ -267,19 +257,25 @@ def auth_session():
             app.logger.warning('auth_session: non-invited user blocked')
             return jsonify({'ok': False}), 403
 
+        session.clear()
         session.permanent = True
         session['user_id'] = user.id
         session['user_email'] = user.email or ''
+        _ensure_csrf_token()
         return jsonify({'ok': True})
     except Exception as e:
         app.logger.error('auth_session failed: %s', type(e).__name__)
         return jsonify({'ok': False}), 401
 
 
-@app.route('/logout')
+@app.route('/logout', methods=['POST'])
+@limiter.limit("10 per hour")
 def logout():
+    body = request.get_json() or {}
+    if body.get('csrf_token') != session.get('csrf_token') or not session.get('csrf_token'):
+        return jsonify({'error': 'Invalid request.'}), 403
     session.clear()
-    return redirect('/login')
+    return jsonify({'ok': True})
 
 
 @app.route('/me')
@@ -355,7 +351,7 @@ def save_history():
             'user_id':       _uid(),
             'preview':       (data.get('preview') or '')[:200],
             'urgency':       _urgency_post,
-            'email_text':    str(data.get('email') or '')[:50_000],
+            'email_text':    _redact_pii(str(data.get('email') or ''))[:50_000],
             'analysis_json': _cap_json(data.get('data')),
             'is_thread':     data.get('isThread', False),
             'thread_count':  data.get('threadCount', 0),
@@ -514,6 +510,13 @@ _UK_SORT_CODE_RE  = re.compile(r'(sort\s*code\s*:?\s*)(\d{2}-\d{2}-\d{2})', re.I
 _UK_ACCOUNT_NO_RE = re.compile(r'(account\s*(?:number|no\.?|num\.?|#)?\s*:?\s*)(\d{8})\b', re.IGNORECASE)
 _UK_PHONE_RE      = re.compile(r'(?:\+44|0044)[\s\-]?\d{10}|(?<!\d)0[1-9]\d{9}(?!\d)')
 
+def _redact_pii(text: str) -> str:
+    text = _UK_PHONE_RE.sub('[phone removed]', text)
+    text = _UK_SORT_CODE_RE.sub(r'\1[sort code removed]', text)
+    text = _UK_ACCOUNT_NO_RE.sub(r'\1[account number removed]', text)
+    return text
+
+
 _REQUIRED_FIELDS = frozenset({
     'sender_mood', 'urgency', 'tone_scores', 'summary',
     'action_items', 'suggested_reply', 'recommended_response_time',
@@ -552,7 +555,7 @@ def _pre_analyse(email_text: str) -> str:
     token_estimate = int(len(email_text.split()) * 1.3)
     app.logger.info('[pre-hook] ts=%s tokens~=%d', ts, token_estimate)
 
-    if _INJECTION_RE.search(email_text):
+    if _INJECTION_RE.search(unicodedata.normalize('NFKC', email_text)):
         app.logger.warning('[pre-hook] Prompt injection attempt blocked at %s', ts)
         raise _PreAnalyseRejected('Input rejected: possible prompt injection attempt detected.')
 
@@ -612,7 +615,7 @@ def analyse():
     _raw_tone = (data or {}).get('tone', 'Professional').strip()
     tone = _raw_tone if _raw_tone in TONE_GUIDES else 'Professional'
     name = re.sub(r"[^\w\s'\-.]", '', str((data or {}).get('name', '') or ''))[:50].strip()
-    if _INJECTION_RE.search(name):
+    if _INJECTION_RE.search(unicodedata.normalize('NFKC', name)):
         name = ''
 
     if not email_text:
@@ -708,7 +711,7 @@ def analyse_thread():
     _raw_tone = (data or {}).get('tone', 'Professional').strip()
     tone = _raw_tone if _raw_tone in TONE_GUIDES else 'Professional'
     name = re.sub(r"[^\w\s'\-.]", '', str((data or {}).get('name', '') or ''))[:50].strip()
-    if _INJECTION_RE.search(name):
+    if _INJECTION_RE.search(unicodedata.normalize('NFKC', name)):
         name = ''
 
     if not email_text:
@@ -731,11 +734,11 @@ def analyse_thread():
         prev_urgency = _raw_urg if _raw_urg in _VALID_URGENCY else 'unknown'
         prev_sender  = str(item.get('analysis', {}).get('sender', f'Sender {i}'))[:100]
         prev_email   = _cap_email_text(str(item.get('email', '') or ''), max_words=300)
-        if _INJECTION_RE.search(prev_email):
+        if _INJECTION_RE.search(unicodedata.normalize('NFKC', prev_email)):
             prev_email = '[content redacted: injection pattern detected]'
-        if _INJECTION_RE.search(prev_summary):
+        if _INJECTION_RE.search(unicodedata.normalize('NFKC', prev_summary)):
             prev_summary = '[summary redacted]'
-        if _INJECTION_RE.search(prev_sender):
+        if _INJECTION_RE.search(unicodedata.normalize('NFKC', prev_sender)):
             prev_sender = f'Sender {i}'
         prev_email = _UK_PHONE_RE.sub('[phone removed]', prev_email)
         prev_email = _UK_SORT_CODE_RE.sub(r'\1[sort code removed]', prev_email)
@@ -825,7 +828,7 @@ def regenerate_reply():
     _raw_tone = (data or {}).get('tone', 'Professional').strip()
     tone = _raw_tone if _raw_tone in TONE_GUIDES else 'Professional'
     name = re.sub(r"[^\w\s'\-.]", '', str((data or {}).get('name', '') or ''))[:50].strip()
-    if _INJECTION_RE.search(name):
+    if _INJECTION_RE.search(unicodedata.normalize('NFKC', name)):
         name = ''
 
     if not email_text:
@@ -902,13 +905,13 @@ def compose():
     _raw_tone = (data or {}).get('tone', 'Professional').strip()
     tone = _raw_tone if _raw_tone in TONE_GUIDES else 'Professional'
     recipient = re.sub(r"[^\w\s'\-.]", '', str((data or {}).get('recipient', '') or ''))[:80].strip()
-    if _INJECTION_RE.search(recipient):
+    if _INJECTION_RE.search(unicodedata.normalize('NFKC', recipient)):
         recipient = ''
 
     if not description:
         return jsonify({'error': 'Please describe the email you want to write.'}), 400
 
-    if _INJECTION_RE.search(description):
+    if _INJECTION_RE.search(unicodedata.normalize('NFKC', description)):
         return jsonify({'error': 'Request rejected — invalid content detected.'}), 400
 
     description = _cap_email_text(description, max_words=300)
@@ -1165,6 +1168,9 @@ def settings():
 @auth_required
 @limiter.limit("5 per hour")
 def account_delete():
+    body = request.get_json() or {}
+    if body.get('csrf_token') != session.get('csrf_token') or not session.get('csrf_token'):
+        return jsonify({'error': 'Invalid request.'}), 403
     uid = _uid()
     email = session.get('user_email', '').strip().lower()
     if not supabase_db:
