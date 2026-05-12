@@ -445,6 +445,25 @@ def delete_history_item(item_id):
 _MAX_JSON_BYTES = 50 * 1024
 
 
+def _extract_json(raw: str) -> dict:
+    """Extract a JSON object from Claude's response, tolerating markdown fences and leading/trailing text."""
+    cleaned = raw.replace("```json", "").replace("```", "").strip()
+    try:
+        return json.loads(cleaned)
+    except (json.JSONDecodeError, ValueError):
+        pass
+    # Fall back: find outermost { … } in case Claude prefixed or suffixed with prose
+    start = cleaned.find('{')
+    end   = cleaned.rfind('}')
+    if start != -1 and end > start:
+        try:
+            return json.loads(cleaned[start:end + 1])
+        except (json.JSONDecodeError, ValueError):
+            pass
+    safe_snippet = re.sub(r'[\x00-\x1f\x7f-\x9f]', '?', raw[:200])
+    raise ValueError(f"Could not parse JSON from response (first 200 chars): {safe_snippet!r}")
+
+
 def _cap_json(obj):
     if obj is None:
         return None
@@ -658,10 +677,10 @@ def analyse():
         app.logger.error('Anthropic API returned empty content list')
         return jsonify({'error': 'Analysis failed — no response received. Please try again.'}), 500
     raw = response.content[0].text
-    cleaned = raw.replace("```json", "").replace("```", "").strip()
     try:
-        result = json.loads(cleaned)
-    except (json.JSONDecodeError, ValueError):
+        result = _extract_json(raw)
+    except ValueError as e:
+        app.logger.error('[analyse] JSON parse failed: %s', type(e).__name__)
         return jsonify({'error': 'Analysis failed — unexpected response format. Please try again.'}), 500
 
     try:
@@ -774,10 +793,10 @@ def analyse_thread():
         app.logger.error('Anthropic API returned empty content list')
         return jsonify({'error': 'Analysis failed — no response received. Please try again.'}), 500
     raw = response.content[0].text
-    cleaned = raw.replace("```json", "").replace("```", "").strip()
     try:
-        result = json.loads(cleaned)
-    except (json.JSONDecodeError, ValueError):
+        result = _extract_json(raw)
+    except ValueError as e:
+        app.logger.error('[analyse-thread] JSON parse failed: %s', type(e).__name__)
         return jsonify({'error': 'Analysis failed — unexpected response format. Please try again.'}), 500
 
     try:
